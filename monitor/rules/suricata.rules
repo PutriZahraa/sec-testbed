@@ -1,0 +1,13 @@
+# XSS Detection Rules for Security Testbed
+alert http any any -> any any (msg:"XSS Attack Detected - Script Tag"; content:"<script"; nocase; sid:1000001; rev:1;)
+alert http any any -> any any (msg:"XSS Attack Detected - JavaScript Event"; content:"javascript:"; nocase; sid:1000002; rev:1;)
+alert http any any -> any any (msg:"XSS Attack Detected - OnClick Event"; content:"onclick"; nocase; sid:1000003; rev:1;)
+alert http any any -> any any (msg:"XSS Attack Detected - OnLoad Event"; content:"onload"; nocase; sid:1000004; rev:1;)
+alert http any any -> any any (msg:"XSS Attack Detected - OnMouseOver Event"; content:"onmouseover"; nocase; sid:1000005; rev:1;)
+alert http any any -> any any (msg:"XSS Attack Detected - Alert Function"; content:"alert("; nocase; sid:1000006; rev:1;)
+alert http any any -> any any (msg:"XSS Attack Detected - Eval Function"; content:"eval("; nocase; sid:1000007; rev:1;)
+alert http any any -> any any (msg:"XSS Attack Detected - Document.write"; content:"document.write"; nocase; sid:1000008; rev:1;)
+alert http any any -> any any (msg:"XSS Attack Detected - IFrame Tag"; content:"<iframe"; nocase; sid:1000009; rev:1;)
+alert http any any -> any any (msg:"XSS Attack Detected - SVG Tag"; content:"<svg"; nocase; sid:1000010; rev:1;)
+alert http any any -> any any (msg:"XSS Attack Detected - HTML Entity"; content:"&#"; nocase; sid:1000011; rev:1;)
+alert http any any -> any any (msg:"XSS Attack Detected - Base64 Script"; content:"script"; base64_decode; nocase; sid:1000012; rev:1;)

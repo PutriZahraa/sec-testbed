@@ -1,0 +1,161 @@
+# Mode 2: HTTP Only Configuration for ML Detection
+# This configuration focuses solely on HTTP events for ML analysis
+# Alerts are disabled to test pure ML detection effectiveness
+
+%YAML 1.1
+---
+
+vars:
+  address-groups:
+    HOME_NET: "[192.168.1.0/24,10.0.0.0/8,172.16.0.0/12]"
+    EXTERNAL_NET: "!$HOME_NET"
+    HTTP_SERVERS: "$HOME_NET"
+    SMTP_SERVERS: "$HOME_NET"
+    SQL_SERVERS: "$HOME_NET"
+    DNS_SERVERS: "$HOME_NET"
+    TELNET_SERVERS: "$HOME_NET"
+    AIM_SERVERS: "$EXTERNAL_NET"
+    DC_SERVERS: "$HOME_NET"
+    DNP3_SERVER: "$HOME_NET"
+    DNP3_CLIENT: "$HOME_NET"
+    MODBUS_CLIENT: "$HOME_NET"
+    MODBUS_SERVER: "$HOME_NET"
+    ENIP_CLIENT: "$HOME_NET"
+    ENIP_SERVER: "$HOME_NET"
+
+  port-groups:
+    HTTP_PORTS: "80"
+    SHELLCODE_PORTS: "!80"
+    ORACLE_PORTS: 1521
+    SSH_PORTS: 22
+    DNP3_PORTS: 20000
+    MODBUS_PORTS: 502
+    FILE_DATA_PORTS: "[$HTTP_PORTS,110,143]"
+    FTP_PORTS: 21
+    GENEVE_PORTS: 6081
+    VXLAN_PORTS: 4789
+    TEREDO_PORTS: 3544
+
+default-log-dir: /var/log/suricata/
+
+stats:
+  enabled: no
+
+outputs:
+  - eve-log:
+      enabled: yes
+      filetype: regular
+      filename: eve.json
+      types:
+        - http:
+            extended: yes
+            custom: [Accept, Accept-Charset, Accept-Encoding, Accept-Language, Accept-Ranges, Age, Allow, Authorization, Cache-Control, Connection, Content-Encoding, Content-Language, Content-Length, Content-Location, Content-MD5, Content-Range, Content-Type, Cookie, Date, ETag, Expires, From, Host, If-Match, If-Modified-Since, If-None-Match, If-Range, If-Unmodified-Since, Last-Modified, Location, Max-Forwards, Pragma, Proxy-Authorization, Range, Referer, Retry-After, Server, Set-Cookie, TE, Trailer, Transfer-Encoding, Upgrade, User-Agent, Vary, Via, Warning, WWW-Authenticate, X-Forwarded-For, X-Forwarded-Proto, X-Forwarded-Host, X-Real-IP, X-Requested-With, X-Frame-Options, X-Content-Type-Options, X-XSS-Protection, Content-Security-Policy, Strict-Transport-Security, X-Forwarded-Server, X-Forwarded-Port]
+            dump-all-headers: [both]
+
+app-layer:
+  protocols:
+    http:
+      enabled: yes
+      libhtp:
+        default-config:
+          personality: IDS
+          request-body-limit: 100kb
+          response-body-limit: 100kb
+          request-body-minimal-inspect-size: 32kb
+          request-body-inspect-window: 4kb
+          response-body-minimal-inspect-size: 40kb
+          response-body-inspect-window: 16kb
+          response-body-decompress-layer-limit: 2
+          http-body-inline: auto
+          swf-decompression:
+            enabled: yes
+            type: both
+            compress-depth: 0
+            decompress-depth: 0
+          double-decode-path: no
+          double-decode-query: no
+
+# Minimal logging configuration
+logging:
+  default-log-level: error
+  default-log-format: "[%i] %t - (%f:%l) <%d> (%n) -- "
+  outputs:
+  - console:
+      enabled: yes
+  - file:
+      enabled: yes
+      level: info
+      filename: /var/log/suricata/suricata.log
+  - syslog:
+      enabled: no
+
+# Simplified thread configuration
+threading:
+  set-cpu-affinity: no
+  cpu-affinity:
+    - management-cpu-set:
+        cpu: [ 0 ]
+    - receive-cpu-set:
+        cpu: [ 0 ]
+    - worker-cpu-set:
+        cpu: [ "all" ]
+        mode: "exclusive"
+
+# Basic host configuration
+host:
+  hash-size: 4096
+  prealloc: 1000
+  memcap: 16777216
+
+# Flow configuration
+flow:
+  memcap: 64mb
+  hash-size: 65536
+  prealloc: 10000
+  emergency-recovery: 30
+
+# Stream configuration
+stream:
+  memcap: 64mb
+  checksum-validation: yes
+  inline: auto
+  reassembly:
+    memcap: 64mb
+    depth: 1mb
+    toserver-chunk-size: 2560
+    toclient-chunk-size: 2560
+
+# Defrag configuration
+defrag:
+  memcap: 32mb
+  hash-size: 65536
+  trackers: 65536
+  max-frags: 65536
+  prealloc: yes
+  timeout: 60
+
+# Host table configuration
+host-table:
+  hash-size: 4096
+  prealloc: 1000
+  memcap: 16777216
+
+# Disable detection engine for Mode 2
+detect:
+  profile: low
+  custom-values:
+    toclient-groups: 3
+    toserver-groups: 25
+  sgh-mpm-context: auto
+  inspection-recursion-limit: 3000
+  
+# Disable rule loading for Mode 2
+default-rule-path: /var/lib/suricata/rules
+rule-files: []
+
+# Classification and reference configs (minimal)
+classification-file: /etc/suricata/classification.config
+reference-config-file: /etc/suricata/reference.config
+
+# Minimal sensor configuration
+sensor-name: sec-testbed-mode2

@@ -30,13 +30,8 @@ wheels/
 *.egg
 
 # Data directories (runtime generated)
-data/captures/*.pcap
-data/captures/*.pcapng
-data/captures/*.arg
-data/analysis/*.log
-data/analysis/*.json
-data/analysis/datasets/
-data/analysis/models/
+data/captures/*
+data/analysis/*
 data/attacker_logs/*.log
 data/victim_logs/*.log
 data/switch_logs/*.log

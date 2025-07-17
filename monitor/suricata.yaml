@@ -227,7 +227,7 @@ app-layer:
           dp: 53
 
 # Rule engine
-default-rule-path: /var/lib/suricata/rules
+default-rule-path: /etc/suricata/rules
 rule-files:
   - suricata.rules
 

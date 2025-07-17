@@ -80,11 +80,15 @@ RUN mkdir -p /etc/suricata/rules && \
     touch /etc/suricata/rules/suricata.rules && \
     mkdir -p /var/lib/suricata/rules
 
+# Copy XSS detection rules
+COPY rules/suricata.rules /etc/suricata/rules/suricata.rules
+
 # Copy monitoring scripts
 COPY start_suricata_monitoring.sh /
+COPY start_monitoring.sh /
 COPY scripts/ /scripts/
 COPY healthcheck.sh /usr/local/bin/
-RUN chmod +x /start_suricata_monitoring.sh /usr/local/bin/healthcheck.sh
+RUN chmod +x /start_suricata_monitoring.sh /start_monitoring.sh /usr/local/bin/healthcheck.sh
 
 # Configure log rotation
 COPY logrotate.conf /etc/logrotate.d/testbed
