@@ -138,3 +138,6 @@ load-test-data/
 
 # Custom user additions (add your local ignores here)
 # *.local
+archive/
+*.pyc
+__pycache__/

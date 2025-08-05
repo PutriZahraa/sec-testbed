@@ -1,0 +1,276 @@
+# Official Suricata Configuration with XSS-focused rules
+# Uses Emerging Threats Open and other official rule sources
+# Optimized for comparison against ML-based detection
+
+%YAML 1.1
+---
+
+# Global stats
+stats:
+  enabled: yes
+  interval: 30
+
+# Configure outputs for official rule detection comparison
+outputs:
+  # Eve.json output for analysis and comparison
+  - eve-log:
+      enabled: yes
+      filetype: regular
+      filename: /captures/eve_official.json
+      pcap-file: false
+      community-id: false
+      community-id-seed: 0
+      xff:
+        enabled: no
+
+      types:
+        # Log alerts with full details for analysis
+        - alert:
+            payload: yes
+            payload-buffer-size: 8kb
+            payload-printable: yes
+            packet: yes
+            http-body: yes
+            http-body-printable: yes
+            metadata: yes
+            tagged-packets: yes
+            rule-metadata: all
+            
+        # HTTP events for correlation
+        - http:
+            extended: yes
+            dump-all-headers: yes
+            custom: [Accept, Accept-Charset, Accept-Encoding, Accept-Language, Accept-Ranges, Age, Allow, Authorization, Cache-Control, Connection, Content-Encoding, Content-Language, Content-Length, Content-Location, Content-MD5, Content-Range, Content-Type, Cookie, Date, ETag, Expires, From, Host, If-Match, If-Modified-Since, If-None-Match, If-Range, If-Unmodified-Since, Last-Modified, Location, Max-Forwards, Pragma, Proxy-Authorization, Range, Referer, Retry-After, Server, Set-Cookie, TE, Trailer, Transfer-Encoding, Upgrade, User-Agent, Vary, Via, Warning, WWW-Authenticate, X-Forwarded-For, X-Forwarded-Proto, X-Forwarded-Host, X-Real-IP, X-Requested-With, X-Frame-Options, X-Content-Type-Options, X-XSS-Protection, Content-Security-Policy, Strict-Transport-Security]
+
+  # Fast log for quick alert overview
+  - fast:
+      enabled: yes
+      filename: /captures/fast_official.log
+      append: yes
+
+  # Stats for monitoring
+  - stats:
+      enabled: yes
+      filename: /captures/stats_official.log
+      append: yes
+      totals: yes
+      threads: no
+
+# Logging configuration
+logging:
+  default-log-level: notice
+  outputs:
+  - console:
+      enabled: yes
+  - file:
+      enabled: yes
+      level: info
+      filename: /captures/suricata_official.log
+
+# Network interface configuration
+af-packet:
+  - interface: eth0
+    cluster-id: 98
+    cluster-type: cluster_flow
+    defrag: yes
+    use-mmap: yes
+    tpacket-v3: yes
+
+# Detection engine - optimized for rule-based detection
+detect-engine:
+  - profile: high
+  - custom-values:
+      toclient-groups: 5
+      toserver-groups: 30
+  - sgh-mpm-context: auto
+  - inspection-recursion-limit: 3000
+
+# Threading for optimal rule processing
+threading:
+  set-cpu-affinity: no
+  cpu-affinity:
+    - management-cpu-set:
+        cpu: [ 0 ]
+    - receive-cpu-set:
+        cpu: [ 0 ]
+    - worker-cpu-set:
+        cpu: [ "all" ]
+  detect-thread-ratio: 1.5
+
+# Flow settings
+flow:
+  memcap: 128mb
+  hash-size: 65536
+  prealloc: 10000
+  emergency-recovery: 30
+
+# Stream engine
+stream:
+  memcap: 64mb
+  checksum-validation: yes
+  inline: auto
+  reassembly:
+    memcap: 256mb
+    depth: 2mb
+    toserver-chunk-size: 2560
+    toclient-chunk-size: 2560
+    randomize-chunk-size: yes
+
+# Host table
+host:
+  hash-size: 4096
+  prealloc: 1000
+  memcap: 32mb
+
+# Defrag
+defrag:
+  memcap: 32mb
+  hash-size: 65536
+  trackers: 65536
+  max-frags: 65536
+  prealloc: yes
+  timeout: 60
+
+# Flow timeouts
+flow-timeouts:
+  default:
+    new: 30
+    established: 300
+    closed: 0
+    bypassed: 100
+    emergency-new: 10
+    emergency-established: 100
+    emergency-closed: 0
+    emergency-bypassed: 50
+  tcp:
+    new: 60
+    established: 600
+    closed: 60
+    bypassed: 100
+    emergency-new: 5
+    emergency-established: 25
+    emergency-closed: 10
+    emergency-bypassed: 25
+  udp:
+    new: 30
+    established: 300
+    bypassed: 100
+    emergency-new: 10
+    emergency-established: 25
+    emergency-bypassed: 25
+
+# Application layer protocols - focused on HTTP for XSS detection
+app-layer:
+  protocols:
+    http:
+      enabled: yes
+      memcap: 128mb
+      default-config:
+        personality: IDS
+        request-body-limit: 200kb
+        response-body-limit: 200kb
+        request-body-minimal-inspect-size: 32kb
+        request-body-inspect-window: 8kb
+        response-body-minimal-inspect-size: 40kb
+        response-body-inspect-window: 16kb
+        response-body-decompress-layer-limit: 2
+        http-body-inline: auto
+        swf-decompression:
+          enabled: yes
+          type: both
+          compress-depth: 0
+          decompress-depth: 0
+        double-decode-path: yes
+        double-decode-query: yes
+        meta-field-limit: 4096
+
+    tls:
+      enabled: yes
+      detection-ports:
+        dp: 443
+
+    # Disable other protocols to focus on web traffic
+    ssh:
+      enabled: no
+    smtp:
+      enabled: no
+    dns:
+      tcp:
+        enabled: no
+      udp:
+        enabled: no
+
+# Rule configuration - Use official/curated XSS rules
+default-rule-path: /var/lib/suricata/rules
+rule-files:
+  # Combined official XSS detection rules
+  - suricata.rules
+
+# Security classification and references
+classification-file: /etc/suricata/classification.config
+reference-config-file: /etc/suricata/reference.config
+
+# Variables
+vars:
+  address-groups:
+    HOME_NET: "[100.64.0.0/24]"
+    EXTERNAL_NET: "!$HOME_NET"
+    HTTP_SERVERS: "$HOME_NET"
+    
+  port-groups:
+    HTTP_PORTS: "[80,3000,8080,8000,8888]"
+    HTTPS_PORTS: "[443,8443]"
+    SHELLCODE_PORTS: "!80"
+
+# Host OS policy
+host-os-policy:
+  linux: [100.64.0.0/24, "::1"]
+
+# Exception policy
+exception-policy: auto
+
+# Capture settings
+capture:
+  disable-offloading: yes
+
+# PCAP processing
+pcap:
+  - interface: default
+
+# Run mode
+runmode: autofp
+
+# Engine analysis for rule optimization
+engine-analysis:
+  rules-fast-pattern: yes
+  rules: yes
+
+# Performance tuning
+max-pending-packets: 2048
+default-packet-size: 1518
+
+# Profiling for rule performance analysis
+profiling:
+  rules:
+    enabled: yes
+    filename: /captures/rule_perf_official.log
+    append: yes
+    sort: avgticks
+    limit: 100
+    json: yes
+  keywords:
+    enabled: yes
+    filename: /captures/keyword_perf_official.log
+    append: yes
+
+# Memory settings
+memcap: 1gb
+
+# Unix socket for control
+unix-socket:
+  enabled: yes
+  filename: /var/run/suricata/suricata-official.socket
+
+# Coredump configuration
+coredump:
+  max-dump: unlimited

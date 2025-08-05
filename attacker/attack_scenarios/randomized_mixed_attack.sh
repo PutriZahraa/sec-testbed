@@ -1,7 +1,8 @@
 #!/bin/bash
 TARGET_IP="${TARGET_IP:-100.64.0.20}"
+PORT="${PORT:-3000}"
 JUICE_URL="http://${TARGET_IP}:${PORT}"
-DURATION_SECONDS=60
+DURATION_SECONDS="${DURATION_SECONDS:-30}"
 END_TIME=$(( $(date +%s) + DURATION_SECONDS ))
 INTERVAL=1
 
@@ -91,5 +92,13 @@ echo "--- Mixed traffic generation complete ---"
 echo "Total requests sent: $total_requests"
 echo "XSS attacks: $xss_attacks"
 echo "Normal requests: $normal_requests"
-echo "Attack ratio: $(echo "scale=2; $xss_attacks * 100 / $total_requests" | bc -l)%"
+
+# Calculate attack ratio using bash arithmetic (more reliable than bc)
+if [ $total_requests -gt 0 ]; then
+    attack_ratio=$((xss_attacks * 100 / total_requests))
+    echo "Attack ratio: ${attack_ratio}%"
+else
+    echo "Attack ratio: 0%"
+fi
+
 echo "Completed at: $(ts)"

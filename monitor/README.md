@@ -143,6 +143,19 @@ docker exec sec_monitor cat /etc/suricata/suricata.yaml | grep -A 5 "eve-log:"
 
 ## Mode Comparison Workflow
 
+### Step 0: Clear Previous Data (Optional - For Clean Comparison)
+For accurate comparison between detection methods, clear previous traffic data:
+
+```bash
+# Clear eve.json for fresh analysis (recommended between test runs)
+docker exec sec_monitor truncate -s 0 /captures/eve.json
+
+# Verify eve.json is empty
+docker exec sec_monitor wc -l /captures/eve.json
+```
+
+**Note**: Skipping this step will analyze ALL historical traffic data, which may include previous test sessions.
+
 ### Step 1: Generate Mixed Traffic
 Generate realistic mixed traffic with both attacks and benign requests:
 

@@ -4,21 +4,23 @@
 
 ## Overview
 
-A Docker-based security testbed designed for comparing traditional rule-based detection (Mode 1) with modern ML-based detection (Mode 2). This branch (`w_suricata_juiceshop`) features advanced monitoring capabilities and comprehensive detection analysis.
+A Docker-based security testbed designed for comparing traditional rule-based detection (Mode 1) with modern ML-based detection (Mode 2). This branch (`w_suricata_juiceshop`) features advanced monitoring capabilities with **official Suricata XSS rules** and comprehensive detection analysis.
 
 ### Purpose
-- **Detection Comparison**: Compare Suricata rule-based vs ML-based XSS detection
+- **Detection Comparison**: Compare official Suricata XSS rules vs ML-based detection
+- **Official Baseline**: Industry-standard ET Open XSS rules for credible research comparison
 - **ML Dataset Generation**: Create labeled datasets for ML/AI security research
 - **Attack Simulation**: Test XSS attack scenarios with realistic traffic patterns
 - **Performance Analysis**: Evaluate detection effectiveness and false positive rates
-- **Security Research**: Advanced monitoring with Suricata integration
+- **Security Research**: Advanced monitoring with official Suricata rule integration
 
 ## Key Features (w_suricata_juiceshop Branch)
 
-🔍 **Mode 1**: Suricata rule-based detection with alert analysis
+🔍 **Mode 1**: Official Suricata XSS rules (27 ET Open signatures) with consolidated analysis
 🤖 **Mode 2**: ML-based XSS detection using 8 HTTP features  
-📊 **Side-by-side comparison** framework with automated analysis
+📊 **Side-by-side comparison** framework with automated consolidation
 🎯 **Randomized mixed traffic** generation (27% attacks, 73% benign)
+⚡ **Official rules setup** with ET Open XSS rule downloads
 📚 **Comprehensive monitoring guide** with step-by-step instructions
 🛠️ **Advanced troubleshooting** and system verification tools
 
@@ -41,11 +43,12 @@ A Docker-based security testbed designed for comparing traditional rule-based de
 
 ## Detection Modes
 
-### Mode 1: Rule-Based Detection (Suricata)
-- **Method**: Traditional signature-based rules
-- **Analysis**: Alert counting and signature matching
-- **Output**: Alert events with rule classifications
-- **Strengths**: Fast, low false positives, signature accuracy
+### Mode 1: Official Rule-Based Detection (Suricata)
+- **Method**: Official ET Open XSS signatures (27 rules)
+- **Source**: Emerging Threats Open ruleset with XSS-focused rules
+- **Analysis**: Consolidated alert counting with duplicate removal
+- **Output**: Alert events with official rule classifications
+- **Strengths**: Industry standard, proven signatures, research credibility
 
 ### Mode 2: ML-Based Detection
 - **Method**: RandomForest with 8 HTTP features
@@ -71,10 +74,11 @@ A Docker-based security testbed designed for comparing traditional rule-based de
 - **Features**: Real-world web application attack surface
 
 ### 3. **Monitor Container** (100.64.0.30)
-- **Purpose**: Advanced monitoring with Suricata 8.0.0 + ML detection
+- **Purpose**: Advanced monitoring with Suricata 8.0.0 + official XSS rules + ML detection
 - **Key Features**:
-  - **Mode 1**: Suricata rule-based detection (`analyze_mode1_simple.py`)
+  - **Mode 1**: Official Suricata XSS rules with consolidated analysis (`analyze_consolidated_detection.py`)
   - **Mode 2**: ML-based XSS detection (`mode2_ml_detector.py`)
+  - Official ET Open XSS rule setup (`setup_official_rules.sh`)
   - Real-time traffic analysis and correlation
   - Comprehensive comparison framework
 
@@ -111,34 +115,90 @@ A Docker-based security testbed designed for comparing traditional rule-based de
    docker exec -it sec_attacker ./randomized_mixed_attack.sh
    ```
 
-5. **Run Mode 1 Analysis (Suricata Rules)**
+5. **Setup Official XSS Rules**
    ```bash
-   docker exec sec_monitor python3 /scripts/analyze_mode1_simple.py /captures/eve.json
+   # Download and setup official ET Open XSS rules
+   docker exec sec_monitor /scripts/setup_official_rules.sh
+   
+   # Restart Suricata with official configuration
+   docker exec sec_monitor pkill suricata
+   docker exec sec_monitor suricata -c /etc/suricata/suricata_official_xss.yaml -i eth0 -D
    ```
 
-6. **Run Mode 2 Analysis (ML Detection)**
+6. **Clear Previous Data (Optional - For Clean Comparison)**
    ```bash
+   # Clear eve.json for fresh analysis (recommended between test runs)
+   docker exec sec_monitor truncate -s 0 /captures/eve.json
+   ```
+
+7. **Generate Mixed Traffic**
+   ```bash
+   # Generate attacks + benign traffic
+   docker exec sec_attacker bash -c 'cd /attack_scenarios && timeout 30s ./randomized_mixed_attack.sh'
+   ```
+
+8. **Run Consolidated Analysis (Both Modes)**
+   ```bash
+   # Comprehensive Mode 1 vs Mode 2 comparison
+   docker exec sec_monitor python3 /scripts/analyze_consolidated_detection.py /captures/eve.json
+   ```
+
+9. **Alternative: Individual Mode Analysis**
+   ```bash
+   # Mode 1 only (Official Suricata Rules)
+   docker exec sec_monitor python3 /scripts/analyze_mode1_simple.py /captures/eve.json
+   
+   # Mode 2 only (ML Detection)
    docker exec sec_monitor python3 /scripts/mode2_ml_detector.py /captures/eve.json
    ```
 
-7. **Access Services**
+10. **Access Services**
    - OWASP Juice Shop: http://100.64.0.20:3000
 
 ## Detection Comparison Results
 
-### Example Analysis Output
+### Example Analysis Output (Consolidated)
 
-**Mode 1 (Suricata Rules):**
+**Mode 1 vs Mode 2 Comparison:**
 ```
-📊 MODE 1 SURICATA ANALYSIS SUMMARY
+🔄 CONSOLIDATED MODE COMPARISON ANALYSIS
+========================================
+
+📊 TRAFFIC ANALYSIS:
+   Total HTTP Requests: 62
+   Attack Requests: ~27% (mixed XSS patterns)
+   Benign Requests: ~73% (normal navigation)
+
+🔍 MODE 1 - OFFICIAL SURICATA XSS RULES:
+   Rule Triggers: 32 alerts
+   Consolidated Detections: 12 unique attacks
+   Detection Rate: 19.4%
+   Official Rules: 27 ET Open XSS signatures
+
+🤖 MODE 2 - ML DETECTION:
+   ML Detections: 13 attacks
+   Detection Rate: 21.0%
+   Model: RandomForestClassifier (8 features)
+
+📈 COMPARISON SUMMARY:
+   ML Advantage: +1.6% detection rate
+   Both methods detect different attack patterns
+   Suggests potential for hybrid approach
+```
+
+### Legacy Individual Analysis
+
+**Mode 1 (Official Suricata Rules):**
+```
+📊 MODE 1 OFFICIAL SURICATA ANALYSIS
 Total HTTP Requests: 59
 Alert Events Generated: 23
 Detection Rate: 39.0%
 
-🔍 SURICATA RULE ANALYSIS:
-   Rule Detection: Active
+🔍 OFFICIAL RULE ANALYSIS:
+   Rules Active: 27 ET Open XSS signatures
    XSS-related Alerts: 23
-   Alert Signatures: XSS Attack Detected - Alert Function, Script Tag, etc.
+   Alert Types: ET WEB_CLIENT XSS Alert Function, Script Tag, etc.
 ```
 
 **Mode 2 (ML Detection):**
@@ -188,8 +248,10 @@ data/
 ## Key Scripts and Tools
 
 ### Detection Analysis
-- `monitor/scripts/analyze_mode1_simple.py` - Simple Suricata rule analysis
+- `monitor/scripts/analyze_consolidated_detection.py` - **NEW**: Comprehensive Mode 1 vs Mode 2 comparison
+- `monitor/scripts/analyze_mode1_simple.py` - Simple Suricata rule analysis  
 - `monitor/scripts/mode2_ml_detector.py` - ML-based XSS detection
+- `monitor/scripts/setup_official_rules.sh` - **NEW**: Official ET Open XSS rules setup
 - `attacker/attack_scenarios/randomized_mixed_attack.sh` - Traffic generator
 
 ### System Management
@@ -198,8 +260,9 @@ data/
 - `utils/cleanup.sh` - Data cleanup utilities
 
 ### Monitoring
-- Real-time attack monitoring
-- Suricata process management
+- Official Suricata configuration with XSS-focused rules
+- Real-time attack monitoring with consolidated analysis
+- Suricata process management with official rule integration
 - ML model validation tools
 
 ## Dependencies
@@ -213,12 +276,13 @@ data/
 ## Branch-Specific Features
 
 This `w_suricata_juiceshop` branch includes:
-- ✅ Advanced Suricata integration
+- ✅ Advanced Suricata integration with **official ET Open XSS rules**
 - ✅ OWASP Juice Shop target application  
 - ✅ ML-based detection framework
-- ✅ Mode comparison capabilities
+- ✅ **Mode 1 vs Mode 2 consolidated comparison** capabilities
+- ✅ **Official rules setup automation** with ET Open integration
 - ✅ Comprehensive monitoring guides
-- ✅ Automated analysis scripts
+- ✅ **Research-ready baseline comparison** for publications
 
 ## Security Considerations
 

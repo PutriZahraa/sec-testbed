@@ -22,11 +22,27 @@ done
 log "Interface $INTERFACE ready"
 
 # Update Suricata rules
-log "Updating Suricata rules..."
-suricata-update --no-test --quiet || {
-    log "Warning: Could not update rules, using default rules"
-    # Create minimal rule set for basic detection
-    cat > /var/lib/suricata/rules/suricata.rules << 'EOF'
+log "Setting up official XSS rules..."
+if [ -f /scripts/setup_official_rules.sh ]; then
+    /scripts/setup_official_rules.sh
+    # Use official XSS configuration if available
+    if [ -f /etc/suricata/suricata_official_xss.yaml ]; then
+        SURICATA_CONFIG="/etc/suricata/suricata_official_xss.yaml"
+        log "Using official XSS rules configuration"
+    else
+        SURICATA_CONFIG="/etc/suricata/suricata.yaml"
+        log "Using default configuration"
+    fi
+else
+    SURICATA_CONFIG="/etc/suricata/suricata.yaml"
+    log "Using default configuration (setup script not found)"
+    
+    # Fallback: Update rules with suricata-update
+    log "Updating Suricata rules..."
+    suricata-update --no-test --quiet || {
+        log "Warning: Could not update rules, using default rules"
+        # Create minimal rule set for basic detection
+        cat > /var/lib/suricata/rules/suricata.rules << 'EOF'
 # Basic attack detection rules for testbed
 alert http any any -> any any (msg:"HTTP GET Request"; flow:established,to_server; http.method; content:"GET"; classtype:protocol-command-decode; sid:1000001; rev:1;)
 alert http any any -> any any (msg:"HTTP POST Request"; flow:established,to_server; http.method; content:"POST"; classtype:protocol-command-decode; sid:1000002; rev:1;)
@@ -37,11 +53,12 @@ alert tcp any any -> any 3000 (msg:"Connection to Juice Shop"; flow:to_server; c
 alert http any any -> any any (msg:"Potential SQL Injection"; flow:established,to_server; content:"union"; nocase; http_uri; classtype:web-application-attack; sid:1000007; rev:1;)
 alert http any any -> any any (msg:"Potential XSS Attack"; flow:established,to_server; content:"script"; nocase; http_uri; classtype:web-application-attack; sid:1000008; rev:1;)
 EOF
-}
+    }
+fi
 
 # Test Suricata configuration
 log "Testing Suricata configuration..."
-if ! suricata -T -c /etc/suricata/suricata.yaml; then
+if ! suricata -T -c "$SURICATA_CONFIG"; then
     log "ERROR: Suricata configuration test failed"
     exit 1
 fi
@@ -50,7 +67,7 @@ log "Suricata configuration test passed"
 # Start Suricata in IDS mode
 start_suricata() {
     log "Starting Suricata IDS on interface $INTERFACE..."
-    suricata -c /etc/suricata/suricata.yaml -i $INTERFACE --pidfile /var/run/suricata/suricata.pid -D
+    suricata -c "$SURICATA_CONFIG" -i $INTERFACE --pidfile /var/run/suricata/suricata.pid -D
     
     # Wait for Suricata to start
     sleep 5
