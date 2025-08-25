@@ -82,11 +82,7 @@ RUN mkdir -p /etc/suricata/rules && \
 
 # Copy XSS detection rules
 COPY rules/suricata.rules /etc/suricata/rules/suricata.rules
-
-# Copy official XSS rules setup
-COPY setup_official_rules.sh /scripts/
-COPY suricata_official_xss.yaml /etc/suricata/
-RUN chmod +x /scripts/setup_official_rules.sh
+COPY rules/standard_xss_rules.rules /etc/suricata/rules/standard_xss_rules.rules
 
 # Copy monitoring scripts
 COPY start_suricata_monitoring.sh /

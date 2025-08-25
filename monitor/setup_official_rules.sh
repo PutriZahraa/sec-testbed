@@ -18,7 +18,7 @@ log "Downloading Emerging Threats Open rules..."
 cd /tmp/et_download
 
 # Try to download ET Open rules
-if curl -L -o emerging.rules.tar.gz "https://rules.emergingthreats.net/open/suricata-8.0.0/emerging.rules.tar.gz" 2>/dev/null; then
+if curl -L --max-time 120 --connect-timeout 30 --retry 2 --retry-delay 5 -o emerging.rules.tar.gz "https://rules.emergingthreats.net/open/suricata-8.0.0/emerging.rules.tar.gz" 2>/dev/null; then
     log "Successfully downloaded ET Open rules"
     tar -xzf emerging.rules.tar.gz
     
@@ -143,11 +143,18 @@ log "Updating rule configuration..."
 cat > /var/lib/suricata/rules/suricata.rules << 'EOF'
 # Official XSS Detection Rules
 # This file includes official and curated rules for XSS detection
-
-# Include all rules from the official directory
-include "/var/lib/suricata/rules/official/emerging-web_client.rules"
-include "/var/lib/suricata/rules/official/emerging-web_server.rules"
 EOF
+
+# Concatenate all rule files into the main rules file
+log "Concatenating rule files..."
+for rulefile in /var/lib/suricata/rules/official/*.rules; do
+    if [ -f "$rulefile" ]; then
+        echo "" >> /var/lib/suricata/rules/suricata.rules
+        echo "# Rules from $(basename $rulefile)" >> /var/lib/suricata/rules/suricata.rules
+        cat "$rulefile" >> /var/lib/suricata/rules/suricata.rules
+        log "Added rules from $(basename $rulefile)"
+    fi
+done
 
 # Count total rules
 TOTALRULES=$(find /var/lib/suricata/rules/official/ -name "*.rules" -exec cat {} \; | grep -c "^alert" 2>/dev/null || echo 0)
@@ -159,7 +166,8 @@ if suricata -T -c /etc/suricata/suricata_official_xss.yaml -S /var/lib/suricata/
     log "✅ Official rules syntax validation passed"
 else
     log "❌ Rule syntax validation failed, checking errors..."
-    suricata -T -c /etc/suricata/suricata_official_xss.yaml -S /var/lib/suricata/rules/suricata.rules
+    suricata -T -c /etc/suricata/suricata_official_xss.yaml -S /var/lib/suricata/rules/suricata.rules || true
+    log "Warning: Rule syntax validation failed, but continuing with available rules"
 fi
 
 log "Official Suricata XSS rules setup complete!"

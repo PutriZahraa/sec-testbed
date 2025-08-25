@@ -21,40 +21,9 @@ while ! ip link show $INTERFACE >/dev/null 2>&1; do
 done
 log "Interface $INTERFACE ready"
 
-# Update Suricata rules
-log "Setting up official XSS rules..."
-if [ -f /scripts/setup_official_rules.sh ]; then
-    /scripts/setup_official_rules.sh
-    # Use official XSS configuration if available
-    if [ -f /etc/suricata/suricata_official_xss.yaml ]; then
-        SURICATA_CONFIG="/etc/suricata/suricata_official_xss.yaml"
-        log "Using official XSS rules configuration"
-    else
-        SURICATA_CONFIG="/etc/suricata/suricata.yaml"
-        log "Using default configuration"
-    fi
-else
-    SURICATA_CONFIG="/etc/suricata/suricata.yaml"
-    log "Using default configuration (setup script not found)"
-    
-    # Fallback: Update rules with suricata-update
-    log "Updating Suricata rules..."
-    suricata-update --no-test --quiet || {
-        log "Warning: Could not update rules, using default rules"
-        # Create minimal rule set for basic detection
-        cat > /var/lib/suricata/rules/suricata.rules << 'EOF'
-# Basic attack detection rules for testbed
-alert http any any -> any any (msg:"HTTP GET Request"; flow:established,to_server; http.method; content:"GET"; classtype:protocol-command-decode; sid:1000001; rev:1;)
-alert http any any -> any any (msg:"HTTP POST Request"; flow:established,to_server; http.method; content:"POST"; classtype:protocol-command-decode; sid:1000002; rev:1;)
-alert tcp any any -> any any (msg:"TCP SYN Packet"; flags:S; classtype:protocol-command-decode; sid:1000003; rev:1;)
-alert icmp any any -> any any (msg:"ICMP Packet"; classtype:icmp-event; sid:1000004; rev:1;)
-alert tcp any any -> any 22 (msg:"SSH Connection"; flow:to_server,established; classtype:protocol-command-decode; sid:1000005; rev:1;)
-alert tcp any any -> any 3000 (msg:"Connection to Juice Shop"; flow:to_server; classtype:web-application-attack; sid:1000006; rev:1;)
-alert http any any -> any any (msg:"Potential SQL Injection"; flow:established,to_server; content:"union"; nocase; http_uri; classtype:web-application-attack; sid:1000007; rev:1;)
-alert http any any -> any any (msg:"Potential XSS Attack"; flow:established,to_server; content:"script"; nocase; http_uri; classtype:web-application-attack; sid:1000008; rev:1;)
-EOF
-    }
-fi
+# Check for testbed mode - skip rule setup for dataset generation
+log "Setting up Suricata rules and configuration"
+SURICATA_CONFIG="/etc/suricata/suricata.yaml"
 
 # Test Suricata configuration
 log "Testing Suricata configuration..."

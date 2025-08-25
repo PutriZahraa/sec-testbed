@@ -1,0 +1,51 @@
+# OWASP Core Rule Set Based XSS Detection Rules for Suricata
+# Source: OWASP CRS v4.18.0 (https://github.com/coreruleset/coreruleset)
+# Adapted from REQUEST-941-APPLICATION-ATTACK-XSS.conf
+# Purpose: Standard web application XSS detection for thesis research
+# Citation: OWASP Core Rule Set Project. (2025). OWASP CRS v4.18.0. 
+#           Retrieved from https://coreruleset.org/
+
+# Based on OWASP CRS Rule 941110: Script Tag Vector
+alert http any any -> any any (msg:"XSS: Script tag detected (OWASP CRS 941110)"; flow:established; http.uri; pcre:"/<script[^>]*>/i"; classtype:web-application-attack; sid:1000001; rev:1; reference:url,coreruleset.org;)
+
+# Based on OWASP CRS Rule 941210: JavaScript protocol detection  
+alert http any any -> any any (msg:"XSS: JavaScript protocol detected (OWASP CRS 941210)"; flow:established; http.uri; content:"javascript:"; nocase; classtype:web-application-attack; sid:1000002; rev:1; reference:url,coreruleset.org;)
+
+# Based on OWASP CRS Rule 941390: JavaScript methods detection
+alert http any any -> any any (msg:"XSS: JavaScript method detected (OWASP CRS 941390)"; flow:established; http.uri; pcre:"/\b(eval|alert|confirm|prompt)\s*\(/i"; classtype:web-application-attack; sid:1000003; rev:1; reference:url,coreruleset.org;)
+
+# Based on OWASP CRS Rule 941120: Event handler detection  
+alert http any any -> any any (msg:"XSS: Event handler detected (OWASP CRS 941120)"; flow:established; http.uri; pcre:"/on(load|click|error|focus|mouse|key)\s*=/i"; classtype:web-application-attack; sid:1000004; rev:1; reference:url,coreruleset.org;)
+
+# Based on OWASP CRS Rule 941160: HTML injection patterns
+alert http any any -> any any (msg:"XSS: IMG onerror detected (OWASP CRS 941160)"; flow:established; http.uri; content:"<img"; nocase; content:"onerror"; nocase; within:100; classtype:web-application-attack; sid:1000005; rev:1; reference:url,coreruleset.org;)
+
+# Based on OWASP CRS Rule 941160: SVG onload detection
+alert http any any -> any any (msg:"XSS: SVG onload detected (OWASP CRS 941160)"; flow:established; http.uri; content:"<svg"; nocase; content:"onload"; nocase; within:100; classtype:web-application-attack; sid:1000006; rev:1; reference:url,coreruleset.org;)
+
+# Based on OWASP CRS Rule 941140: Iframe javascript detection
+alert http any any -> any any (msg:"XSS: Iframe javascript detected (OWASP CRS 941140)"; flow:established; http.uri; content:"<iframe"; nocase; content:"javascript:"; nocase; within:200; classtype:web-application-attack; sid:1000007; rev:1; reference:url,coreruleset.org;)
+
+# Based on OWASP CRS Rule 941180: Document manipulation
+alert http any any -> any any (msg:"XSS: Document.write detected (OWASP CRS 941180)"; flow:established; http.uri; content:"document.write"; nocase; classtype:web-application-attack; sid:1000008; rev:1; reference:url,coreruleset.org;)
+
+# Based on OWASP CRS Rule 941390: Eval function detection
+alert http any any -> any any (msg:"XSS: Eval function detected (OWASP CRS 941390)"; flow:established; http.uri; content:"eval("; nocase; classtype:web-application-attack; sid:1000009; rev:1; reference:url,coreruleset.org;)
+
+# Based on OWASP CRS Rule 941110: Encoded script tag
+alert http any any -> any any (msg:"XSS: Encoded script tag detected (OWASP CRS 941110)"; flow:established; http.uri; pcre:"/%3[cC]script/i"; classtype:web-application-attack; sid:1000010; rev:1; reference:url,coreruleset.org;)
+
+# Based on OWASP CRS Rule 941160: Body onload
+alert http any any -> any any (msg:"XSS: Body onload detected (OWASP CRS 941160)"; flow:established; http.uri; content:"<body"; nocase; content:"onload"; nocase; within:100; classtype:web-application-attack; sid:1000011; rev:1; reference:url,coreruleset.org;)
+
+# Based on OWASP CRS Rule 941140: Anchor href javascript
+alert http any any -> any any (msg:"XSS: Anchor href javascript detected (OWASP CRS 941140)"; flow:established; http.uri; content:"href="; nocase; content:"javascript:"; nocase; within:50; classtype:web-application-attack; sid:1000012; rev:1; reference:url,coreruleset.org;)
+
+# Based on OWASP CRS Rule 941300: Object data javascript
+alert http any any -> any any (msg:"XSS: Object data javascript detected (OWASP CRS 941300)"; flow:established; http.uri; content:"<object"; nocase; content:"javascript:"; nocase; within:200; classtype:web-application-attack; sid:1000013; rev:1; reference:url,coreruleset.org;)
+
+# Based on OWASP CRS Rule 941230: Embed src javascript
+alert http any any -> any any (msg:"XSS: Embed src javascript detected (OWASP CRS 941230)"; flow:established; http.uri; content:"<embed"; nocase; content:"javascript:"; nocase; within:200; classtype:web-application-attack; sid:1000014; rev:1; reference:url,coreruleset.org;)
+
+# Based on OWASP CRS Rule 941180: Cookie manipulation
+alert http any any -> any any (msg:"XSS: Document.cookie detected (OWASP CRS 941180)"; flow:established; http.uri; content:"document.cookie"; nocase; classtype:web-application-attack; sid:1000015; rev:1; reference:url,coreruleset.org;)

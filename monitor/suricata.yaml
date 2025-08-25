@@ -229,7 +229,8 @@ app-layer:
 # Rule engine
 default-rule-path: /etc/suricata/rules
 rule-files:
-  - suricata.rules
+  - standard_xss_rules.rules
+#  - suricata.rules
 
 # Security classification
 classification-file: /etc/suricata/classification.config

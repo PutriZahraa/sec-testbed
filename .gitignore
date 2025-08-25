@@ -110,6 +110,7 @@ docker-compose.*.yml
 backup/
 backups/
 *.backup
+monitor_backup/
 
 # Coverage reports
 htmlcov/
