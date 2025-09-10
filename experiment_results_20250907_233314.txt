@@ -1,0 +1,253 @@
+CUSTOM SECURITY EXPERIMENT ITERATIONS
+=====================================
+Total Iterations: 10
+Started: Sun Sep  7 23:33:15 WIB 2025
+=====================================
+
+ITERATION 1 - Sun Sep  7 23:33:15 WIB 2025
+===========================================
+📋 EXPERIMENT SUMMARY:
+   ═══════════════════════════════════════════
+   🎯 GROUND TRUTH (Traffic Generation):
+      Total HTTP Requests: 200
+      Attack Requests: 95
+      Benign Requests: 105
+      Actual Attack Rate: 47%
+
+   🛡️  DETECTION RESULTS:
+      Mode 1 (Official Rules): 52 detections (26.0%)
+      Mode 2 (ML Detection): 92 detections (46.0%)
+
+   📊 PERFORMANCE ANALYSIS:
+      Mode 1 Detection Accuracy: 54.7% (52/95)
+      Mode 2 Detection Accuracy: 96.8% (92/95)
+
+   💾 DATA ARCHIVE:
+      Backup saved: data/captures/eve.json.bak-20250907_235130
+      Fresh eve.json ready for next experiment
+
+-------------------------------------------
+
+ITERATION 2 - Sun Sep  7 23:51:46 WIB 2025
+===========================================
+📋 EXPERIMENT SUMMARY:
+   ═══════════════════════════════════════════
+   🎯 GROUND TRUTH (Traffic Generation):
+      Total HTTP Requests: 200
+      Attack Requests: 96
+      Benign Requests: 104
+      Actual Attack Rate: 48%
+
+   🛡️  DETECTION RESULTS:
+      Mode 1 (Official Rules): 56 detections (28.0%)
+      Mode 2 (ML Detection): 93 detections (46.5%)
+
+   📊 PERFORMANCE ANALYSIS:
+      Mode 1 Detection Accuracy: 58.3% (56/96)
+      Mode 2 Detection Accuracy: 96.8% (93/96)
+
+   💾 DATA ARCHIVE:
+      Backup saved: data/captures/eve.json.bak-20250908_000912
+      Fresh eve.json ready for next experiment
+
+-------------------------------------------
+
+ITERATION 3 - Mon Sep  8 00:09:28 WIB 2025
+===========================================
+📋 EXPERIMENT SUMMARY:
+   ═══════════════════════════════════════════
+   🎯 GROUND TRUTH (Traffic Generation):
+      Total HTTP Requests: 200
+      Attack Requests: 95
+      Benign Requests: 105
+      Actual Attack Rate: 47%
+
+   🛡️  DETECTION RESULTS:
+      Mode 1 (Official Rules): 51 detections (25.5%)
+      Mode 2 (ML Detection): 90 detections (45.0%)
+
+   📊 PERFORMANCE ANALYSIS:
+      Mode 1 Detection Accuracy: 53.6% (51/95)
+      Mode 2 Detection Accuracy: 94.7% (90/95)
+
+   💾 DATA ARCHIVE:
+      Backup saved: data/captures/eve.json.bak-20250908_002715
+      Fresh eve.json ready for next experiment
+
+-------------------------------------------
+
+ITERATION 4 - Mon Sep  8 00:27:32 WIB 2025
+===========================================
+📋 EXPERIMENT SUMMARY:
+   ═══════════════════════════════════════════
+   🎯 GROUND TRUTH (Traffic Generation):
+      Total HTTP Requests: 200
+      Attack Requests: 102
+      Benign Requests: 98
+      Actual Attack Rate: 51%
+
+   🛡️  DETECTION RESULTS:
+      Mode 1 (Official Rules): 63 detections (31.5%)
+      Mode 2 (ML Detection): 97 detections (48.5%)
+
+   📊 PERFORMANCE ANALYSIS:
+      Mode 1 Detection Accuracy: 61.7% (63/102)
+      Mode 2 Detection Accuracy: 95.0% (97/102)
+
+   💾 DATA ARCHIVE:
+      Backup saved: data/captures/eve.json.bak-20250908_004621
+      Fresh eve.json ready for next experiment
+
+-------------------------------------------
+
+ITERATION 5 - Mon Sep  8 00:46:37 WIB 2025
+===========================================
+📋 EXPERIMENT SUMMARY:
+   ═══════════════════════════════════════════
+   🎯 GROUND TRUTH (Traffic Generation):
+      Total HTTP Requests: 200
+      Attack Requests: 99
+      Benign Requests: 101
+      Actual Attack Rate: 49%
+
+   🛡️  DETECTION RESULTS:
+      Mode 1 (Official Rules): 64 detections (32.0%)
+      Mode 2 (ML Detection): 97 detections (48.5%)
+
+   📊 PERFORMANCE ANALYSIS:
+      Mode 1 Detection Accuracy: 64.6% (64/99)
+      Mode 2 Detection Accuracy: 97.9% (97/99)
+
+   💾 DATA ARCHIVE:
+      Backup saved: data/captures/eve.json.bak-20250908_010509
+      Fresh eve.json ready for next experiment
+
+-------------------------------------------
+
+ITERATION 6 - Mon Sep  8 01:05:26 WIB 2025
+===========================================
+📋 EXPERIMENT SUMMARY:
+   ═══════════════════════════════════════════
+   🎯 GROUND TRUTH (Traffic Generation):
+      Total HTTP Requests: 200
+      Attack Requests: 111
+      Benign Requests: 89
+      Actual Attack Rate: 55%
+
+   🛡️  DETECTION RESULTS:
+      Mode 1 (Official Rules): 71 detections (35.5%)
+      Mode 2 (ML Detection): 108 detections (54.0%)
+
+   📊 PERFORMANCE ANALYSIS:
+      Mode 1 Detection Accuracy: 63.9% (71/111)
+      Mode 2 Detection Accuracy: 97.2% (108/111)
+
+   💾 DATA ARCHIVE:
+      Backup saved: data/captures/eve.json.bak-20250908_012303
+      Fresh eve.json ready for next experiment
+
+-------------------------------------------
+
+ITERATION 7 - Mon Sep  8 01:23:20 WIB 2025
+===========================================
+📋 EXPERIMENT SUMMARY:
+   ═══════════════════════════════════════════
+   🎯 GROUND TRUTH (Traffic Generation):
+      Total HTTP Requests: 200
+      Attack Requests: 94
+      Benign Requests: 106
+      Actual Attack Rate: 47%
+
+   🛡️  DETECTION RESULTS:
+      Mode 1 (Official Rules): 53 detections (26.5%)
+      Mode 2 (ML Detection): 90 detections (45.0%)
+
+   📊 PERFORMANCE ANALYSIS:
+      Mode 1 Detection Accuracy: 56.3% (53/94)
+      Mode 2 Detection Accuracy: 95.7% (90/94)
+
+   💾 DATA ARCHIVE:
+      Backup saved: data/captures/eve.json.bak-20250908_014114
+      Fresh eve.json ready for next experiment
+
+-------------------------------------------
+
+ITERATION 8 - Mon Sep  8 01:41:30 WIB 2025
+===========================================
+📋 EXPERIMENT SUMMARY:
+   ═══════════════════════════════════════════
+   🎯 GROUND TRUTH (Traffic Generation):
+      Total HTTP Requests: 200
+      Attack Requests: 107
+      Benign Requests: 93
+      Actual Attack Rate: 53%
+
+   🛡️  DETECTION RESULTS:
+      Mode 1 (Official Rules): 70 detections (35.0%)
+      Mode 2 (ML Detection): 104 detections (52.0%)
+
+   📊 PERFORMANCE ANALYSIS:
+      Mode 1 Detection Accuracy: 65.4% (70/107)
+      Mode 2 Detection Accuracy: 97.1% (104/107)
+
+   💾 DATA ARCHIVE:
+      Backup saved: data/captures/eve.json.bak-20250908_020108
+      Fresh eve.json ready for next experiment
+
+-------------------------------------------
+
+ITERATION 9 - Mon Sep  8 02:01:25 WIB 2025
+===========================================
+📋 EXPERIMENT SUMMARY:
+   ═══════════════════════════════════════════
+   🎯 GROUND TRUTH (Traffic Generation):
+      Total HTTP Requests: 200
+      Attack Requests: 107
+      Benign Requests: 93
+      Actual Attack Rate: 53%
+
+   🛡️  DETECTION RESULTS:
+      Mode 1 (Official Rules): 70 detections (35.0%)
+      Mode 2 (ML Detection): 105 detections (52.5%)
+
+   📊 PERFORMANCE ANALYSIS:
+      Mode 1 Detection Accuracy: 65.4% (70/107)
+      Mode 2 Detection Accuracy: 98.1% (105/107)
+
+   💾 DATA ARCHIVE:
+      Backup saved: data/captures/eve.json.bak-20250908_021940
+      Fresh eve.json ready for next experiment
+
+-------------------------------------------
+
+ITERATION 10 - Mon Sep  8 02:19:57 WIB 2025
+===========================================
+📋 EXPERIMENT SUMMARY:
+   ═══════════════════════════════════════════
+   🎯 GROUND TRUTH (Traffic Generation):
+      Total HTTP Requests: 200
+      Attack Requests: 101
+      Benign Requests: 99
+      Actual Attack Rate: 50%
+
+   🛡️  DETECTION RESULTS:
+      Mode 1 (Official Rules): 66 detections (33.0%)
+      Mode 2 (ML Detection): 98 detections (49.0%)
+
+   📊 PERFORMANCE ANALYSIS:
+      Mode 1 Detection Accuracy: 65.3% (66/101)
+      Mode 2 Detection Accuracy: 97.0% (98/101)
+
+   💾 DATA ARCHIVE:
+      Backup saved: data/captures/eve.json.bak-20250908_023846
+      Fresh eve.json ready for next experiment
+
+-------------------------------------------
+
+
+ITERATION SUMMARY
+=================
+Total Iterations: 10
+Completed: Mon Sep  8 02:38:52 WIB 2025
+Results File: experiment_results_20250907_233314.txt
+

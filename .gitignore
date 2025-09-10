@@ -142,3 +142,6 @@ load-test-data/
 archive/
 *.pyc
 __pycache__/
+
+# Other files and directories to ignore
+data/labeled_datasets/

