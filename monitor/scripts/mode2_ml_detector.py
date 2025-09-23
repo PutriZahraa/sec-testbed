@@ -135,7 +135,11 @@ class MLXSSDetector:
             else:
                 probability = 1.0 if prediction == 1 else 0.0
             
-            return prediction == 1, probability
+            # Use optimized threshold of 0.35 instead of 0.5
+            optimized_threshold = 0.35
+            is_attack = probability > optimized_threshold
+            
+            return is_attack, probability
             
         except Exception as e:
             print(f"ML prediction error: {e}")

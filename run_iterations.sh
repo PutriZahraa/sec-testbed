@@ -11,7 +11,7 @@ if [ $# -ne 1 ]; then
 fi
 
 ITERATIONS=$1
-RESULTS_FILE="experiment_results_$(date +"%Y%m%d_%H%M%S").txt"
+RESULTS_FILE="archive/experiment_results_$(date +"%Y%m%d_%H%M%S").txt"
 
 # Validate input
 if ! [[ "$ITERATIONS" =~ ^[0-9]+$ ]] || [ "$ITERATIONS" -lt 1 ]; then
