@@ -48,14 +48,19 @@ class RealTimeXSSDetector:
         
     def load_ml_model(self):
         """Load the trained ML model for actual Mode 2 detection"""
+        print("🔄 Loading ML model...")
         try:
+            print(f"   Reading model from: {self.model_path}")
             with open(self.model_path, 'rb') as f:
                 model_data = pickle.load(f)
+            
+            print("   Model file loaded, processing...")
             
             # Handle both old and new model formats
             if isinstance(model_data, dict) and 'model' in model_data:
                 self.model = model_data['model']
                 self.feature_columns = model_data['feature_names']
+                print("   Using new model format (dict)")
             else:
                 self.model = model_data
                 # Default order based on training output
@@ -63,14 +68,18 @@ class RealTimeXSSDetector:
                     'src_port', 'dest_port', 'http_status', 'http_resp_len', 'http_url_len',
                     'url_contains_script_tag', 'url_contains_onerror', 'http_method_POST'
                 ]
+                print("   Using legacy model format")
             
             print(f"✅ ML Model loaded successfully: {type(self.model).__name__}")
             print(f"   Features: {len(self.feature_columns)}")
             
         except Exception as e:
-            print(f"⚠️  Error loading ML model: {e}")
-            print("   Falling back to pattern-based detection")
+            print(f"❌ CRITICAL: Failed to load ML model: {e}")
+            print("   Real-time detection requires ML model!")
             self.model = None
+            raise Exception("ML model loading failed - cannot start real-time detection")
+        
+        print("🔄 Model loading complete, starting monitoring system...")
         
     def log_alert(self, alert_type, event_data, confidence=None):
         """Log real-time alert to alerts file"""
@@ -147,7 +156,7 @@ class RealTimeXSSDetector:
     def predict_xss_ml(self, event):
         """Use actual ML model to predict XSS attack - matching analyze_consolidated_detection.py approach"""
         if self.model is None:
-            return self.pattern_based_xss_detection(event)
+            return False, 0.0
         
         features = self.extract_features(event)
         if features is None:
@@ -164,37 +173,10 @@ class RealTimeXSSDetector:
             return is_attack, probability
             
         except Exception as e:
-            # Fallback to pattern-based detection
-            return self.pattern_based_xss_detection(event)
+            print(f"⚠️  ML prediction error: {e}", flush=True)
+            return False, 0.0
     
-    def pattern_based_xss_detection(self, event):
-        """Pattern-based XSS detection as ML fallback"""
-        http_data = event.get('http', {})
-        url = http_data.get('url', '')
-        
-        # Decode URL to get actual content
-        decoded_url = unquote(url)
-        
-        # XSS patterns to detect
-        xss_patterns = [
-            '<script', 'javascript:', 'alert(', 'confirm(', 'prompt(',
-            'onerror=', 'onload=', 'onclick=', 'onmouseover=', 'onfocus=',
-            'onstart=', '<svg', '<iframe', '<img', '<body', '<marquee',
-            '<form', '<input', '<math', 'document.', 'window.'
-        ]
-        
-        # Check for XSS patterns (case-insensitive)
-        url_lower = decoded_url.lower()
-        xss_found = any(pattern in url_lower for pattern in xss_patterns)
-        
-        # Calculate confidence based on pattern matching
-        if xss_found:
-            # Count how many patterns matched
-            pattern_count = sum(1 for pattern in xss_patterns if pattern in url_lower)
-            confidence = min(0.5 + (pattern_count * 0.1), 0.95)
-            return True, confidence
-        else:
-            return False, 0.1
+
         
     def process_mode1_alert(self, event):
         """Process Mode 1: Suricata Rule Alerts"""
@@ -256,20 +238,23 @@ class RealTimeXSSDetector:
             display_url = url[:60] + "..." if len(url) > 60 else url
             
             if mode1_detected and mode2_detected:
-                print(f"[{timestamp}] 🔴 BOTH {display_url}")
+                print(f"[{timestamp}] 🔴 BOTH {display_url}", flush=True)
             elif mode1_detected:
-                print(f"[{timestamp}] 🛡️  M1 {display_url}")
+                print(f"[{timestamp}] 🛡️  M1 {display_url}", flush=True)
             elif mode2_detected:
-                print(f"[{timestamp}] 🤖 M2 {display_url}")
+                print(f"[{timestamp}] 🤖 M2 {display_url}", flush=True)
                 
     def tail_eve_file(self):
         """Continuously tail the eve.json file for new events"""        
+        print(f"📡 Starting to monitor {self.eve_file}...", flush=True)
         try:
             # Use subprocess to tail the file
             process = subprocess.Popen(['tail', '-F', self.eve_file], 
                                      stdout=subprocess.PIPE, 
                                      stderr=subprocess.PIPE,
                                      universal_newlines=True)
+            
+            print("📡 File monitoring active - waiting for events...", flush=True)
                                      
             while self.running and not self.stop_event.is_set():
                 line = process.stdout.readline()
@@ -279,21 +264,21 @@ class RealTimeXSSDetector:
                     time.sleep(0.1)  # Short pause if no new lines
                     
         except FileNotFoundError:
-            print(f"❌ Error: {self.eve_file} not found")
+            print(f"❌ Error: {self.eve_file} not found", flush=True)
         except KeyboardInterrupt:
-            print("\n⏹️  Stopping real-time monitoring...")
+            print("\n⏹️  Stopping real-time monitoring...", flush=True)
         except Exception as e:
-            print(f"❌ Error in tail monitoring: {e}")
+            print(f"❌ Error in tail monitoring: {e}", flush=True)
         finally:
             if 'process' in locals():
                 process.terminate()
                 
     def print_dashboard(self):
         """Print simple statistics without clearing screen"""
-        print("🚀 Real-Time XSS Detection Started")
-        print("🔍 Watching for attacks... (detections will appear below)")
-        print("Press Ctrl+C to stop monitoring")
-        print("-" * 50)
+        print("🚀 Real-Time XSS Detection Started", flush=True)
+        print("🔍 Watching for attacks... (detections will appear below)", flush=True)
+        print("Press Ctrl+C to stop monitoring", flush=True)
+        print("-" * 50, flush=True)
         
         while self.running and not self.stop_event.is_set():
             time.sleep(30)  # Show stats every 30 seconds
@@ -301,7 +286,7 @@ class RealTimeXSSDetector:
             if self.stats['total_http_requests'] > 0:
                 print(f"\n📊 Stats: {self.stats['total_http_requests']} requests, " +
                       f"🛡️ {self.stats['mode1_detections']} M1, " +
-                      f"🤖 {self.stats['mode2_detections']} M2 detections")
+                      f"🤖 {self.stats['mode2_detections']} M2 detections", flush=True)
             
             # Only show if there are many requests to avoid spam
             if self.stats['total_http_requests'] > 50:
@@ -338,8 +323,19 @@ class RealTimeXSSDetector:
         sys.exit(0)
 
 def main():
-    detector = RealTimeXSSDetector()
-    detector.start()
+    print("🚀 Initializing Real-Time XSS Detector...", flush=True)
+    try:
+        detector = RealTimeXSSDetector()
+        if detector.model is None:
+            print("❌ CRITICAL: No ML model available - cannot start real-time detection", flush=True)
+            print("   Please ensure the ML model is properly trained and saved", flush=True)
+            sys.exit(1)
+        detector.start()
+    except KeyboardInterrupt:
+        print("\n⏹️  Detector stopped by user", flush=True)
+    except Exception as e:
+        print(f"❌ Error starting detector: {e}", flush=True)
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()
