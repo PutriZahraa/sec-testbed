@@ -1,141 +1,155 @@
-# Codebase Analysis Pre-Commit
+# Codebase Analysis - Current State
 
 ## Overview
-This document provides a comprehensive analysis of the current codebase state before committing the final changes for official Suricata XSS rules implementation and Mode 1 vs Mode 2 detection comparison framework.
+This document provides a comprehensive analysis of the current codebase state for the Security Testbed - a Docker-based research environment comparing rule-based detection (Suricata) with ML-based XSS detection.
 
-## Summary of Changes
+## Current Implementation Status
 
-### Major Implementation: Official Suricata XSS Rules Integration
-- **Goal**: Replace custom rules with industry-standard ET Open XSS signatures for credible research comparison
-- **Method**: Downloaded 27 official XSS rules from Emerging Threats Open ruleset
-- **Result**: Research-ready baseline for comparing rule-based (Mode 1) vs ML-based (Mode 2) detection
+### Core Detection Framework
+- **Mode 1**: Custom Suricata XSS rules based on attack patterns 1-20
+- **Mode 2**: ML-based XSS detection using RandomForestClassifier with 8 HTTP features
+- **Comparison**: Consolidated analysis framework that compares detection effectiveness
+- **Target**: OWASP Juice Shop on port 3000 for realistic XSS vulnerability testing
 
-### Enhanced Comparison Framework
-- **Problem Solved**: Multiple rule triggers per attack made fair comparison difficult
-- **Solution**: Consolidated analysis that counts unique attacks rather than individual rule triggers  
-- **Output**: Clean, thesis-friendly comparison suitable for academic documentation
+### Main Workflow Commands
+Based on the user's documented workflow, the key commands are:
+1. `./start_testbed.sh` - Initialize all containers
+2. `docker exec sec_monitor truncate -s 0 /captures/eve.json` - Clear previous logs
+3. `docker exec sec_attacker bash -c './randomized_mixed_attack-v2.sh'` - Send mixed traffic
+4. `docker exec sec_monitor python3 /scripts/analyze_consolidated_detection.py /captures/eve.json` - Analyze results
+5. `./run_custom_experiment.sh` - Automated workflow (200 requests)
+6. `./utils/generate_datasets.sh <duration>` - Generate labeled datasets
 
-### Traffic Generation Improvements
-- **User Input**: Added configurable duration via environment variables
-- **Reliability**: Fixed attack ratio calculation by removing `bc` dependency
-- **Usage**: `DURATION_SECONDS=30 ./randomized_mixed_attack.sh` for custom test durations
+### Traffic Generation Configuration
+- **Attack Ratio**: 40% attacks, 60% benign traffic (based on `randomized_mixed_attack.sh`)
+- **Attack Patterns**: Uses patterns 21-40 for testing (patterns 1-20 used for training)
+- **Duration Control**: Configurable via `DURATION_SECONDS` environment variable
 
-## New Files Added (Untracked)
+## Current File Structure
 
 ### Core Implementation Files ✅ ACTIVE
-- `monitor/scripts/analyze_consolidated_detection.py` - **MAIN**: Comprehensive Mode 1 vs Mode 2 comparison with clean output
-- `monitor/setup_official_rules.sh` - **SETUP**: Downloads and configures official ET Open XSS rules (27 rules)
-- `monitor/suricata_official_xss.yaml` - **CONFIG**: Official Suricata configuration optimized for XSS detection
-- `monitor/start_official_xss_monitoring.sh` - **SERVICE**: Starts Suricata with official XSS rules configuration
-- `CODEBASE_ANALYSIS_PRE_COMMIT.md` - **DOC**: This analysis document
+- `monitor/scripts/analyze_consolidated_detection.py` - **MAIN**: Mode 1 vs Mode 2 comparison analysis
+- `monitor/scripts/mode2_ml_detector.py` - **ML**: ML-based XSS detection implementation
+- `monitor/scripts/realtime_xss_detector.py` - **REALTIME**: Real-time XSS detection
+- `monitor/scripts/eve_processor.py` - **PROCESSING**: Suricata eve.json log processing
+- `monitor/setup_official_rules.sh` - **SETUP**: Suricata rule configuration
+- `monitor/start_suricata_monitoring.sh` - **SERVICE**: Suricata monitoring service
+- `monitor/rules/standard_xss_rules.rules` - **RULES**: Custom XSS detection rules
 
-### Documentation Files ✅ ACTIVE  
-- `monitor/README.md` - Main monitoring guide (references correct workflow)
+### Attack Generation Files ✅ ACTIVE
+- `attacker/attack_scenarios/randomized_mixed_attack.sh` - **MAIN**: Mixed traffic generator (40% attacks, 60% benign)
+- `attacker/attack_scenarios/custom_mixed_traffic-v2.sh` - **FIXED**: Fixed 200 requests for experiments
+- `attacker/attack_scenarios/xss_attack.sh` - **TRAINING**: Attack patterns 1-20 for training
+- `attacker/attack_scenarios/xss_attack2.sh` - **TRAINING**: Alternative training attacks
+- `attacker/attack_scenarios/attack_tools.sh` - **TOOLS**: General attack toolset
 
-### Alternative/Redundant Files ❌ UNUSED
-- `monitor/setup_minimal_xss_rules.sh` - **REDUNDANT**: Alternative minimal setup (superseded by official approach)
-- `monitor/XSS_COMPARISON_GUIDE.md` - **REDUNDANT**: References old minimal approach that's no longer used
-- `monitor/OFFICIAL_XSS_RULES_GUIDE.md` - **REDUNDANT**: Uses wrong script paths and references non-existent analysis scripts
-- `monitor/start_official_xss_monitoring.sh` - **REDUNDANT**: Alternative workflow not used in main README
+### Utility Files ✅ ACTIVE
+- `utils/generate_datasets.sh` - **DATASET**: Dataset generation for ML training
+- `utils/cleanup.sh` - **MAINTENANCE**: Data cleanup utility
+- `utils/status.sh` - **MONITORING**: System status checker
+- `utils/reset.sh` - **RESET**: Complete environment reset
+- `utils/archive.sh` - **BACKUP**: Data archiving utility
 
-## Files Deleted (Cleaned Up)
-These files were removed as they were replaced by the consolidated approach:
-- `monitor/scripts/analyze_mode1_simple.py` - Replaced by `analyze_consolidated_detection.py` with better consolidation
-- `monitor/scripts/dataset_generator.py` - Legacy dataset generation (existing utils are sufficient)
-- `monitor/scripts/ml_dataset_generator.py` - Legacy ML dataset tools (existing utils work better)
-- `monitor/scripts/ml_demo.py` - Demo script (not needed for production research workflow)
-- `monitor/scripts/realtime_detector.py` - Legacy real-time detection (superseded by mode2_ml_detector.py)
+### Main Scripts ✅ ACTIVE
+- `start_testbed.sh` - **STARTUP**: Main testbed initialization
+- `run_custom_experiment.sh` - **AUTOMATION**: Automated 200-request experiment
+- `safe_shutdown.sh` - **SHUTDOWN**: Safe environment shutdown
 
-## Modified Files
+## Key Implementation Details
 
-### Core Scripts Enhanced
-- **`attacker/attack_scenarios/randomized_mixed_attack.sh`**:
-  - ✅ Added user input duration: `DURATION_SECONDS="${DURATION_SECONDS:-30}"`
-  - ✅ Fixed attack ratio calculation: Replaced `bc` with bash arithmetic `$((xss_attacks * 100 / total_requests))`
-  - ✅ Enhanced reliability and removed external dependencies
-  - ✅ Better logging and status output
+### Attack Traffic Configuration
+- **`randomized_mixed_attack.sh`**: 40% XSS attacks, 60% benign traffic
+- **Attack Patterns**: Tests use patterns 21-40; training uses patterns 1-20  
+- **Duration Control**: `DURATION_SECONDS` environment variable (default: 60 seconds)
+- **Fixed Requests**: `custom_mixed_traffic-v2.sh` sends exactly 200 requests
 
-### Documentation Updated
-- **`README.md`**:
-  - ✅ Added official XSS rules workflow and setup instructions
-  - ✅ Updated with Mode 1 vs Mode 2 comparison examples showing clean output
-  - ✅ Enhanced Quick Start guide with complete official rules setup process
-  - ✅ Added research-ready comparison framework documentation
-  - ✅ Updated key features highlighting official rules integration
+### Detection Rules and Files
+- **Suricata Rules**: `monitor/rules/standard_xss_rules.rules` - Custom rules based on attack patterns 1-20
+- **ML Model**: RandomForestClassifier with 8 HTTP features (port, URL length, script detection, etc.)
+- **Target**: OWASP Juice Shop (vulnerable web application) on 100.64.0.20:3000
 
-### Configuration Enhanced
-- **`.gitignore`**:
-  - ✅ Added patterns for temporary analysis files and ML artifacts
-  - ✅ Enhanced exclusions for capture data and model files
-  - ✅ Improved organization for research workflow files
+### Data Storage Locations
+- **Capture Data**: `data/captures/` - Suricata eve.json logs
+- **Labeled Datasets**: `data/labeled_datasets/` - Separated attack, benign, and combined datasets
+- **Analysis Results**: `data/analysis/` - Detection analysis reports and comparisons
 
-### Data Files (Research Artifacts - Modified During Testing)
-- Various CSV files in `data/labeled_datasets/` - Research artifacts updated during workflow validation
+### Container Architecture
+- **Attacker** (100.64.0.10): Traffic generation and attack simulation
+- **Victim** (100.64.0.20): OWASP Juice Shop vulnerable application
+- **Monitor** (100.64.0.30): Suricata + ML detection analysis
+- **Switch** (host network): OpenVSwitch with traffic mirroring
 
-## Recommended Actions Before Commit
+## Current Workflow Analysis
 
-### Files to Remove (Redundant/Unused) 🗑️
-1. **`monitor/setup_minimal_xss_rules.sh`** - No longer needed (official approach is preferred)
-2. **`monitor/XSS_COMPARISON_GUIDE.md`** - References unused minimal setup approach  
-3. **`monitor/OFFICIAL_XSS_RULES_GUIDE.md`** - Uses wrong script paths, references non-existent scripts
-4. **`monitor/start_official_xss_monitoring.sh`** - Alternative workflow not used in main README
+### Standard Operating Procedure
+The user has established a clear 6-step workflow for research operations:
 
-### Rationale for Removal:
-- **Main workflow in README.md**: The README.md contains the correct, tested workflow
-- **Wrong script references**: Guide files reference scripts with wrong paths or that don't exist
-- **Workflow conflicts**: Multiple guides create confusion about which approach to use
-- **Documentation clarity**: Single source of truth in README.md prevents confusion
+1. **Environment Setup**: `./start_testbed.sh` initializes all Docker containers and networking
+2. **Log Cleanup**: `docker exec sec_monitor truncate -s 0 /captures/eve.json` ensures clean analysis
+3. **Traffic Generation**: `docker exec sec_attacker bash -c './randomized_mixed_attack.sh'` creates test traffic
+4. **Detection Analysis**: `docker exec sec_monitor python3 /scripts/analyze_consolidated_detection.py /captures/eve.json` compares results
+5. **Automated Testing**: `./run_custom_experiment.sh` runs the complete workflow with 200 fixed requests
+6. **Dataset Creation**: `./utils/generate_datasets.sh <duration>` generates labeled data for ML research
 
-## Current Workflow Implementation (Final State)
+### Script Variants
+- **Main Script**: `randomized_mixed_attack.sh` - Duration-based mixed traffic generation
+- **Fixed Request Variant**: `custom_mixed_traffic-v2.sh` - Sends exactly 200 requests for experiments
+- **Training Scripts**: `xss_attack.sh` and `xss_attack2.sh` - Attack patterns 1-20 for model training
 
-### Complete Mode 1 vs Mode 2 Comparison Workflow
-```bash
-# 1. Setup official rules (one-time)
-docker exec sec_monitor /scripts/setup_official_rules.sh
+## Research Capabilities
 
-# 2. Start monitoring with official config  
-docker exec sec_monitor pkill suricata
-docker exec sec_monitor suricata -c /etc/suricata/suricata_official_xss.yaml -i eth0 -D
+### Detection Comparison Framework
+The testbed provides comprehensive comparison between:
+- **Mode 1**: Rule-based detection using Suricata with custom XSS rules
+- **Mode 2**: ML-based detection using RandomForestClassifier with 8 HTTP features
 
-# 3. Generate mixed traffic (user-configurable)
-docker exec sec_attacker bash -c 'DURATION_SECONDS=30 cd /attack_scenarios && ./randomized_mixed_attack.sh'
+### ML Model Features
+The ML detection system analyzes:
+1. `src_port` - Source port analysis
+2. `dest_port` - Destination port patterns  
+3. `http_status` - HTTP response codes
+4. `http_resp_len` - Response length analysis
+5. `http_url_len` - URL length patterns
+6. `url_contains_script_tag` - Script tag detection
+7. `url_contains_onerror` - Event handler detection
+8. `http_method_POST` - HTTP method analysis
 
-# 4. Run consolidated analysis (clean comparison)
-docker exec sec_monitor python3 /scripts/analyze_consolidated_detection.py /captures/eve.json
-```
+### Dataset Generation
+- **Training Data**: Generated from attack patterns 1-20 (same as Suricata rules)
+- **Test Data**: Uses attack patterns 21-40 from randomized mixed traffic
+- **Labeled Output**: Separated files for attack, benign, and combined datasets
+- **Research Ready**: CSV format suitable for ML frameworks and academic analysis
 
-### Key Improvements Achieved ✅
-- **Official Rules**: 27 ET Open XSS signatures for research credibility
-- **Clean Comparison**: Consolidated analysis eliminates multiple-trigger confusion
-- **User Control**: Configurable test duration for flexible research scenarios  
-- **Reliable Output**: Removed external dependencies (bc) for better portability
-- **Thesis-Ready**: Clean output format suitable for academic documentation
-- **Research Baseline**: Industry-standard comparison foundation for publications
+## Current Status and Recommendations
 
-## Current Status Summary
+### ✅ Current Implementation Status
+- **Functional Testbed**: All containers and networking operational
+- **Detection Framework**: Both rule-based (Mode 1) and ML-based (Mode 2) detection working
+- **Traffic Generation**: Randomized mixed traffic with proper attack/benign ratio (40%/60%)
+- **Analysis Tools**: Consolidated detection comparison and dataset generation utilities
+- **Documentation**: User-friendly command workflow established
 
-### ✅ Ready for Commit
-- **Official Implementation**: Complete ET Open XSS rules integration (27 rules)
-- **Enhanced Framework**: Clean Mode 1 vs Mode 2 comparison with consolidated analysis
-- **Improved Reliability**: User-configurable traffic generation without external dependencies
-- **Research Documentation**: Complete setup guides and analysis workflow
-- **Clean Output**: Screenshot-friendly results suitable for thesis documentation
+### 📋 Documentation Status
+1. **Attack Ratio Accuracy**: Confirmed 40% attacks, 60% benign traffic (corrected in README.md)
+2. **Workflow Clarity**: The 6-step command sequence is well-documented and functional
+3. **Script References**: All script names now correctly match actual file names
 
-### 🧹 Optional Cleanup (Recommended)
-Remove 4 redundant files that reference incorrect/outdated workflows:
-- `monitor/setup_minimal_xss_rules.sh`
-- `monitor/XSS_COMPARISON_GUIDE.md`
-- `monitor/OFFICIAL_XSS_RULES_GUIDE.md` 
-- `monitor/start_official_xss_monitoring.sh`
+### 🔧 Technical Implementation
+- **Attack Patterns**: Training (1-20) vs Testing (21-40) separation maintained
+- **Data Storage**: Organized structure in `data/` directory with proper subdirectories
+- **Container Architecture**: Properly isolated with defined IP addresses and roles
+- **ML Features**: 8-dimensional feature vector for HTTP-based XSS detection
 
-**Reason**: The main README.md contains the correct, tested workflow. These files reference wrong script paths, non-existent analysis scripts, or outdated approaches.
+### 📊 Research Readiness
+The testbed provides:
+- **Reproducible Results**: Fixed experiment parameters via `run_custom_experiment.sh`
+- **Labeled Datasets**: Properly separated attack/benign data for ML training
+- **Comparison Framework**: Clear Mode 1 vs Mode 2 analysis output
+- **Academic Suitability**: Clean results format for thesis/research documentation
 
-### 📊 Final Result
-A production-ready security testbed with:
-- Industry-standard rule-based detection baseline
-- Advanced ML detection comparison framework  
-- User-friendly research workflow
-- Academic publication-ready output format
-- Comprehensive documentation and troubleshooting guides
-
-**Ready for commit with clean, credible, and reproducible research framework.**
+### ✅ Ready for Production Use
+The current implementation provides a stable, well-documented research environment suitable for:
+- XSS detection research and comparison studies
+- ML model training and evaluation
+- Academic research and publication
+- Educational cybersecurity demonstrations

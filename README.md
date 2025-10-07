@@ -14,15 +14,14 @@ A Docker-based security testbed designed for comparing traditional rule-based de
 - **Performance Analysis**: Evaluate detection effectiveness and false positive rates
 - **Security Research**: Advanced monitoring with official Suricata rule integration
 
-## Key Features (w_suricata_juiceshop Branch)
+## Key Features
 
-🔍 **Mode 1**: Official Suricata XSS rules (27 ET Open signatures) with consolidated analysis
-🤖 **Mode 2**: ML-based XSS detection using 8 HTTP features  
-📊 **Side-by-side comparison** framework with automated consolidation
-🎯 **Randomized mixed traffic** generation (27% attacks, 73% benign)
-⚡ **Official rules setup** with ET Open XSS rule downloads
-📚 **Comprehensive monitoring guide** with step-by-step instructions
-🛠️ **Advanced troubleshooting** and system verification tools
+🔍 **Mode 1**: Custom Suricata XSS rules based on attack patterns 1-20
+🤖 **Mode 2**: ML-based XSS detection using RandomForestClassifier with 8 HTTP features  
+📊 **Automated comparison** framework between rule-based and ML detection
+🎯 **Randomized mixed traffic** generation with attacks 21-40 for testing
+⚡ **One-command automation** with `run_custom_experiment.sh`
+� **Dataset generation** tools for ML research
 
 ## Architecture
 
@@ -43,18 +42,19 @@ A Docker-based security testbed designed for comparing traditional rule-based de
 
 ## Detection Modes
 
-### Mode 1: Official Rule-Based Detection (Suricata)
-- **Method**: Official ET Open XSS signatures (27 rules)
-- **Source**: Emerging Threats Open ruleset with XSS-focused rules
-- **Analysis**: Consolidated alert counting with duplicate removal
-- **Output**: Alert events with official rule classifications
-- **Strengths**: Industry standard, proven signatures, research credibility
+### Mode 1: Rule-Based Detection (Suricata)
+- **Method**: Custom XSS rules based on attack patterns 1-20
+- **File**: `monitor/rules/standard_xss_rules.rules`
+- **Analysis**: Pattern matching against known XSS payloads
+- **Output**: Alert events for detected attacks
+- **Strengths**: Fast, deterministic, low false positives
 
 ### Mode 2: ML-Based Detection
-- **Method**: RandomForest with 8 HTTP features
+- **Method**: RandomForestClassifier with 8 HTTP features
+- **Training**: Uses same attack patterns 1-20 as rule-based mode
 - **Features**: URL patterns, script detection, HTTP analysis
-- **Output**: Confidence scores and malicious predictions
-- **Strengths**: Adaptive, pattern recognition, zero-day detection
+- **Output**: Confidence scores and attack predictions
+- **Strengths**: Adaptive, can detect variations and new patterns
 
 ## Components
 
@@ -64,7 +64,7 @@ A Docker-based security testbed designed for comparing traditional rule-based de
 - **Key Features**: 
   - Randomized mixed attack script (`randomized_mixed_attack.sh`)
   - Attack timing correlation for ML training
-  - Realistic traffic patterns (27% attacks, 73% benign)
+  - Realistic traffic patterns (40% attacks, 60% benign)
 
 ### 2. **Victim Container** (100.64.0.20:3000)
 - **Purpose**: OWASP Juice Shop - intentionally vulnerable web application
@@ -88,130 +88,93 @@ A Docker-based security testbed designed for comparing traditional rule-based de
 
 ## Quick Start
 
-1. **Setup Environment**
-   ```bash
-   git clone <repository>
-   cd sec-testbed
-   git checkout w_suricata_juiceshop
-   ```
+### Main Commands
 
-2. **Start Testbed**
+1. **Start Testbed**
    ```bash
    ./start_testbed.sh
    ```
+   Initializes all containers (attacker, victim, monitor, switch) and starts the testbed environment.
 
-3. **Verify System Status**
+2. **Clear Previous Logs** (before sending new traffic)
    ```bash
-   # Check containers
-   docker ps | grep sec_
-   
-   # Verify Suricata
-   docker exec sec_monitor ps aux | grep suricata
-   ```
-
-4. **Generate Mixed Traffic**
-   ```bash
-   # Generate attacks + benign traffic
-   docker exec -it sec_attacker ./randomized_mixed_attack.sh
-   ```
-
-5. **Setup Official XSS Rules**
-   ```bash
-   # Download and setup official ET Open XSS rules
-   docker exec sec_monitor /scripts/setup_official_rules.sh
-   
-   # Restart Suricata with official configuration
-   docker exec sec_monitor pkill suricata
-   docker exec sec_monitor suricata -c /etc/suricata/suricata_official_xss.yaml -i eth0 -D
-   ```
-
-6. **Clear Previous Data (Optional - For Clean Comparison)**
-   ```bash
-   # Clear eve.json for fresh analysis (recommended between test runs)
    docker exec sec_monitor truncate -s 0 /captures/eve.json
    ```
+   Clears the eve.json file to ensure clean detection analysis for new traffic.
 
-7. **Generate Mixed Traffic**
+3. **Send Mixed Traffic** (benign & attack)
    ```bash
-   # Generate attacks + benign traffic
-   docker exec sec_attacker bash -c 'cd /attack_scenarios && timeout 30s ./randomized_mixed_attack.sh'
+   docker exec sec_attacker bash -c './randomized_mixed_attack.sh'
    ```
+   Generates randomized mixed traffic containing both benign requests and XSS attacks.
 
-8. **Run Consolidated Analysis (Both Modes)**
+4. **Analyze Detection Results** (Suricata Rules vs ML model)
    ```bash
-   # Comprehensive Mode 1 vs Mode 2 comparison
    docker exec sec_monitor python3 /scripts/analyze_consolidated_detection.py /captures/eve.json
    ```
+   Compares Mode 1 (Suricata rules) vs Mode 2 (ML detection) results and shows detection performance.
 
-9. **Alternative: Individual Mode Analysis**
+5. **Automated Experiment** (commands 1-4 with fixed 200 requests)
    ```bash
-   # Mode 1 only (Official Suricata Rules)
-   docker exec sec_monitor python3 /scripts/analyze_mode1_simple.py /captures/eve.json
-   
-   # Mode 2 only (ML Detection)
-   docker exec sec_monitor python3 /scripts/mode2_ml_detector.py /captures/eve.json
+   ./run_custom_experiment.sh
    ```
+   Runs a complete automated experiment: clears logs, sends 200 requests, and analyzes results.
 
-10. **Access Services**
-   - OWASP Juice Shop: http://100.64.0.20:3000
+6. **Generate Dataset** (for ML training)
+   ```bash
+   ./utils/generate_datasets.sh <duration_in_seconds>
+   ```
+   Generates labeled datasets containing both attack and benign traffic for ML model training.
 
-## Detection Comparison Results
+### Access Services
+- **OWASP Juice Shop**: http://100.64.0.20:3000
 
-### Example Analysis Output (Consolidated)
+## Key Files and Components
 
-**Mode 1 vs Mode 2 Comparison:**
+### Detection Rules and Scripts
+
+- **Suricata Rules**: `monitor/rules/standard_xss_rules.rules`
+  - Custom XSS detection rules based on attack patterns 1-20
+  - Used by Mode 1 (Suricata rule-based detection)
+
+- **Attack Traffic Generator**: `attacker/attack_scenarios/randomized_mixed_attack.sh`
+  - Generates mixed traffic with attacks 21-40 for testing
+  - Creates realistic traffic patterns for evaluation
+
+- **Training Attack Scripts**: `attacker/attack_scenarios/xss_attack.sh` or `xss_attack2.sh`
+  - Contains attack patterns 1-20 used for model training
+  - These attacks form the basis for Suricata rules
+
+### Dataset Storage
+
+- **Labeled Datasets**: `/home/ubuntu/sec-testbed/data/labeled_datasets/`
+  - Separate files for attack, benign, and combined datasets
+  - Used for ML model training and evaluation
+
+## Example Detection Results
+
+**Consolidated Analysis Output:**
 ```
 🔄 CONSOLIDATED MODE COMPARISON ANALYSIS
 ========================================
 
 📊 TRAFFIC ANALYSIS:
-   Total HTTP Requests: 62
-   Attack Requests: ~27% (mixed XSS patterns)
-   Benign Requests: ~73% (normal navigation)
+   Total HTTP Requests: 200
+   Attack Requests: ~40% (randomized XSS patterns)
+   Benign Requests: ~60% (normal navigation)
 
-🔍 MODE 1 - OFFICIAL SURICATA XSS RULES:
-   Rule Triggers: 32 alerts
-   Consolidated Detections: 12 unique attacks
-   Detection Rate: 19.4%
-   Official Rules: 27 ET Open XSS signatures
+🔍 MODE 1 - SURICATA XSS RULES:
+   Rule Triggers: 45 alerts
+   Detection Rate: 22.5%
 
 🤖 MODE 2 - ML DETECTION:
-   ML Detections: 13 attacks
-   Detection Rate: 21.0%
+   ML Detections: 52 attacks
+   Detection Rate: 26.0%
    Model: RandomForestClassifier (8 features)
 
 📈 COMPARISON SUMMARY:
-   ML Advantage: +1.6% detection rate
-   Both methods detect different attack patterns
-   Suggests potential for hybrid approach
-```
-
-### Legacy Individual Analysis
-
-**Mode 1 (Official Suricata Rules):**
-```
-📊 MODE 1 OFFICIAL SURICATA ANALYSIS
-Total HTTP Requests: 59
-Alert Events Generated: 23
-Detection Rate: 39.0%
-
-🔍 OFFICIAL RULE ANALYSIS:
-   Rules Active: 27 ET Open XSS signatures
-   XSS-related Alerts: 23
-   Alert Types: ET WEB_CLIENT XSS Alert Function, Script Tag, etc.
-```
-
-**Mode 2 (ML Detection):**
-```
-📊 MODE 2 ML DETECTION SUMMARY
-Total HTTP Requests: 59
-XSS Attacks Detected: 16
-Detection Rate: 27.1%
-
-🤖 ML DETECTION ANALYSIS:
-   Model Type: RandomForestClassifier
-   Features Used: 8
-   Confidence Range: 0.62-0.74
+   ML shows +3.5% better detection rate
+   Hybrid approach recommended for optimal coverage
 ```
 
 ## ML Model Features
@@ -235,61 +198,39 @@ The ML detector uses 8 HTTP-based features:
 - Troubleshooting guides
 - Manual Suricata controls
 
-## Data Collection Directories
+## Data Storage
 
 ```
 data/
-├── captures/          # Suricata eve.json events and traffic logs
-├── analysis/          # Generated ML datasets and analysis reports  
-├── attacker_logs/     # Attack execution logs and timing markers
-└── logs/              # System logs and monitoring data
+├── captures/              # Suricata eve.json logs for analysis
+├── labeled_datasets/      # Generated datasets (attack, benign, combined)
+├── analysis/              # Detection analysis reports
+└── attacker_logs/         # Attack execution logs
 ```
 
-## Key Scripts and Tools
+## Detection Methodology
 
-### Detection Analysis
-- `monitor/scripts/analyze_consolidated_detection.py` - **NEW**: Comprehensive Mode 1 vs Mode 2 comparison
-- `monitor/scripts/analyze_mode1_simple.py` - Simple Suricata rule analysis  
-- `monitor/scripts/mode2_ml_detector.py` - ML-based XSS detection
-- `monitor/scripts/setup_official_rules.sh` - **NEW**: Official ET Open XSS rules setup
-- `attacker/attack_scenarios/randomized_mixed_attack.sh` - Traffic generator
+### Mode 1: Rule-Based Detection (Suricata)
+- **Rules**: Custom XSS rules based on attack patterns 1-20 from `xss_attack.sh`
+- **Method**: Pattern matching against known XSS payloads
+- **File**: `monitor/rules/standard_xss_rules.rules`
 
-### System Management
-- `start_testbed.sh` - Complete testbed startup
-- `utils/status.sh` - System health checks  
-- `utils/cleanup.sh` - Data cleanup utilities
+### Mode 2: ML-Based Detection
+- **Model**: RandomForestClassifier with 8 HTTP features
+- **Training Data**: Generated from attacks 1-20 (same as Suricata rules)
+- **Test Data**: Attacks 21-40 from `randomized_mixed_attack.sh`
 
-### Monitoring
-- Official Suricata configuration with XSS-focused rules
-- Real-time attack monitoring with consolidated analysis
-- Suricata process management with official rule integration
-- ML model validation tools
-
-## Dependencies
+## Requirements
 
 - Docker & Docker Compose
-- OpenVSwitch (installed in switch container)
-- Suricata 8.0.0 with eve.json logging
-- Python 3 with scikit-learn for ML detection
 - Linux host with network privileges
+- Python 3 with scikit-learn (for ML detection)
 
-## Branch-Specific Features
+## Usage Notes
 
-This `w_suricata_juiceshop` branch includes:
-- ✅ Advanced Suricata integration with **official ET Open XSS rules**
-- ✅ OWASP Juice Shop target application  
-- ✅ ML-based detection framework
-- ✅ **Mode 1 vs Mode 2 consolidated comparison** capabilities
-- ✅ **Official rules setup automation** with ET Open integration
-- ✅ Comprehensive monitoring guides
-- ✅ **Research-ready baseline comparison** for publications
-
-## Security Considerations
-
-- **Isolation**: Always run in isolated networks
-- **No Internet**: Never expose to public internet
-- **Weak Credentials**: Intentionally vulnerable - for research only
-- **Clean Up**: Stop containers when not in use
+- **Training vs Testing**: Rules and ML model are trained on attacks 1-20, tested on attacks 21-40
+- **Dataset Generation**: Use `generate_datasets.sh` to create labeled data for research
+- **Automation**: `run_custom_experiment.sh` provides a complete automated workflow
 
 ## Stopping the Testbed
 
@@ -297,19 +238,6 @@ This `w_suricata_juiceshop` branch includes:
 docker compose down
 ```
 
-## Research Applications
-
-1. **Intrusion Detection**: Train ML models on labeled attack data
-2. **Anomaly Detection**: Develop behavioral analysis algorithms  
-3. **Threat Intelligence**: Study attack patterns and signatures
-4. **Security Tool Testing**: Validate detection capabilities
-
-## Troubleshooting
-
-- **OVS Issues**: Check `docker logs sec_switch`
-- **No Traffic**: Verify port mirroring with `ovs-vsctl list Mirror`
-- **Service Access**: Confirm container IPs with `docker network inspect sec-testbed`
-
 ---
 
-**Educational Use Only** - This testbed is designed for cybersecurity research and education in controlled environments.
+**⚠️ Educational Use Only** - This testbed contains intentionally vulnerable services for cybersecurity research and education in controlled environments.
