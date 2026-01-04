@@ -20,7 +20,6 @@ fi
 log "📋 Experiment Configuration:"
 log "   Fixed requests: 200 requests per iteration"
 log "   Attack ratio: 40-59% (randomized 50/50 probability)"
-log "   Interval: Random 1-10 seconds between requests"
 echo
 
 # Step 1: Clear logs
@@ -37,7 +36,7 @@ echo "   Executing custom_mixed_traffic-v2.sh in sec_attacker container"
 echo
 
 # Run the custom traffic script and capture its output for ground truth
-TRAFFIC_OUTPUT=$(docker exec sec_attacker bash /attack_scenarios/custom_mixed_traffic-v2.sh 2>&1)
+TRAFFIC_OUTPUT=$(docker exec sec_attacker bash /attack_scenarios/custom_mixed_traffic.sh 2>&1)
 echo "$TRAFFIC_OUTPUT"
 
 # Extract ground truth data from traffic output
@@ -100,22 +99,6 @@ echo
 echo "   🛡️  DETECTION RESULTS:"
 echo "      Mode 1 (Official Rules): ${MODE1_DETECTIONS:-N/A} detections (${MODE1_RATIO:-N/A}%)"
 echo "      Mode 2 (ML Detection): ${MODE2_DETECTIONS:-N/A} detections (${MODE2_RATIO:-N/A}%)"
-echo
-echo "   📊 PERFORMANCE ANALYSIS:"
-if [[ -n "$ATTACK_REQUESTS" && -n "$MODE1_DETECTIONS" && -n "$MODE2_DETECTIONS" ]]; then
-    # Use bash arithmetic for better compatibility - correct formula: detected/actual * 100
-    if command -v bc >/dev/null 2>&1; then
-        MODE1_ACCURACY=$(echo "scale=1; $MODE1_DETECTIONS * 100 / $ATTACK_REQUESTS" | bc -l 2>/dev/null || echo "N/A")
-        MODE2_ACCURACY=$(echo "scale=1; $MODE2_DETECTIONS * 100 / $ATTACK_REQUESTS" | bc -l 2>/dev/null || echo "N/A")
-    else
-        MODE1_ACCURACY=$(( MODE1_DETECTIONS * 100 / ATTACK_REQUESTS ))
-        MODE2_ACCURACY=$(( MODE2_DETECTIONS * 100 / ATTACK_REQUESTS ))
-    fi
-    echo "      Mode 1 Detection Accuracy: ${MODE1_ACCURACY}% (${MODE1_DETECTIONS}/${ATTACK_REQUESTS})"
-    echo "      Mode 2 Detection Accuracy: ${MODE2_ACCURACY}% (${MODE2_DETECTIONS}/${ATTACK_REQUESTS})"
-else
-    echo "      Unable to calculate accuracy - missing data"
-fi
 echo
 echo "   💾 DATA ARCHIVE:"
 echo "      Backup saved: data/captures/${BACKUP_FILENAME}"

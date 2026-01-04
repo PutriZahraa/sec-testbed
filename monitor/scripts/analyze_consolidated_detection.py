@@ -57,20 +57,24 @@ def analyze_mode1_official(eve_file):
     
     # Consolidate multiple alerts per HTTP request (for fair ML comparison)
     # This is POST-PROCESSING, not rule modification
+    # Option 2: HTTP request fingerprinting (more reliable than flow_id)
     request_groups = defaultdict(list)
     
     for alert in xss_alerts:
-        flow_id = alert.get('flow_id', 'unknown')
-        timestamp = alert.get('timestamp', '')[:19]
-        src_ip = alert.get('src_ip', '')
-        dest_ip = alert.get('dest_ip', '')
+        # Create composite key based on actual HTTP request content
         http_data = alert.get('http', {})
+        hostname = http_data.get('hostname', 'unknown')
         url = http_data.get('url', '')
+        method = http_data.get('http_method', 'unknown')
+        src_ip = alert.get('src_ip', 'unknown')
+        timestamp = alert.get('timestamp', '')[:19]  # Second precision
         
-        request_key = f"{flow_id}_{timestamp}_{src_ip}_{dest_ip}_{url}"
+        # HTTP request fingerprint: combines request identity markers
+        request_key = f"{hostname}_{url}_{method}_{src_ip}_{timestamp}"
         request_groups[request_key].append(alert)
     
     # Calculate detected attack ratio (consolidating multiple rule triggers per request)
+    # Using HTTP fingerprinting ensures same logical request = single detection
     unique_xss_detections = len(request_groups)
     detected_attack_ratio = (unique_xss_detections / len(http_events) * 100) if http_events else 0
     
@@ -120,43 +124,18 @@ def analyze_mode2_optimized_ml(eve_file):
     sys.path.append('/scripts')
     
     try:
-        from mode2_ml_detector import MLXSSDetector
+        from mode2_new_ml import MLXSSDetector
         
         # Load ML detector
         detector = MLXSSDetector()
         
         if detector.model is None:
-            print("❌ ML model not available, using pattern fallback")
-            # Simple pattern fallback
-            import re
-            ml_detections = 0
-            detected_requests = []
-            
-            xss_patterns = [r'<script', r'javascript:', r'alert\(', r'onerror\s*=']
-            
-            for event in http_events:
-                url = event.get('http', {}).get('url', '')
-                if any(re.search(pattern, url, re.IGNORECASE) for pattern in xss_patterns):
-                    ml_detections += 1
-                    detected_requests.append({
-                        'timestamp': event.get('timestamp'),
-                        'url': url,
-                        'confidence': 0.75
-                    })
-            
-            detected_attack_ratio = (ml_detections / len(http_events) * 100) if http_events else 0
-            
-            return {
-                'total_requests': len(http_events),
-                'xss_detections': ml_detections,
-                'detected_attack_ratio': detected_attack_ratio,
-                'detected_requests': detected_requests,
-                'model_type': 'Pattern Fallback'
-            }
+            print("❌ ML model not available - cannot perform ML detection")
+            return None
         
         print(f"🔧 ML Model: {type(detector.model).__name__}")
         print(f"   Features: {len(detector.feature_columns)}")
-        print(f"   Optimized threshold: 0.35 (vs default 0.5)")
+        print(f"   Higher threshold: 0.65 (to reduce false positives)")
         print()
         
         # Process events with optimized threshold
@@ -172,8 +151,8 @@ def analyze_mode2_optimized_ml(eve_file):
                     probability = detector.model.predict_proba(features)[0][1]
                     confidence_scores.append(probability)
                     
-                    # Use optimized threshold of 0.35
-                    is_attack = probability > 0.35
+                    # Use higher threshold of 0.65 to reduce false positives
+                    is_attack = probability > 0.65
                     
                     if is_attack:
                         ml_detections += 1
@@ -191,8 +170,8 @@ def analyze_mode2_optimized_ml(eve_file):
         detected_attack_ratio = (ml_detections / len(http_events) * 100) if http_events else 0
         avg_confidence = sum(confidence_scores) / len(confidence_scores) if confidence_scores else 0
         
-        print(f"🔍 OPTIMIZED ML ANALYSIS:")
-        print(f"   Detection Method: RandomForest with threshold=0.35")
+        print(f"🔍 NEW ML ANALYSIS:")
+        print(f"   Detection Method: RandomForest with threshold=0.65")
         print(f"   XSS Attacks Detected: {ml_detections}")
         print(f"   Detected Attack Ratio: {detected_attack_ratio:.1f}%")
         print(f"   Average Confidence: {avg_confidence:.3f}")
@@ -224,7 +203,7 @@ def analyze_mode2_optimized_ml(eve_file):
             'xss_detections': ml_detections,
             'detected_attack_ratio': detected_attack_ratio,
             'detected_requests': detected_requests,
-            'model_type': 'Optimized ML (threshold=0.35)',
+            'model_type': 'New ML (rf_xss_detector.pkl, threshold=0.65)',
             'avg_confidence': avg_confidence,
             'confidence_distribution': {
                 'high': high_conf,
@@ -234,278 +213,11 @@ def analyze_mode2_optimized_ml(eve_file):
         }
         
     except Exception as e:
-        print(f"❌ Error with optimized ML: {e}")
+        print(f"❌ Error with ML detection: {e}")
         import traceback
         traceback.print_exc()
         return None
-    print("⚡ MODE 2: OPTIMIZED PATTERN DETECTION")
-    print("=" * 60)
-    
-    try:
-        with open(eve_file, 'r') as f:
-            events = [json.loads(line) for line in f if line.strip()]
-    except FileNotFoundError:
-        print(f"❌ Error: File {eve_file} not found")
-        return None
-    
-    http_events = [e for e in events if e.get('event_type') == 'http']
-    print(f"Total HTTP Requests: {len(http_events)}")
-    print()
-    
-    # Comprehensive XSS patterns (based on actual attack evidence)
-    xss_patterns = [
-        # Script injection
-        r'<script[^>]*>',
-        r'javascript:',
-        r'%3Cscript',
-        r'&lt;script',
-        
-        # Event handlers
-        r'onerror\s*=',
-        r'onload\s*=', 
-        r'onclick\s*=',
-        r'onmouseover\s*=',
-        r'onfocus\s*=',
-        r'onkeyup\s*=',
-        r'onchange\s*=',
-        r'onsubmit\s*=',
-        
-        # JavaScript functions
-        r'alert\s*\(',
-        r'confirm\s*\(',
-        r'prompt\s*\(',
-        r'eval\s*\(',
-        r'document\.write',
-        r'top\.alert',
-        
-        # HTML injection with event handlers
-        r'<img[^>]*onerror',
-        r'<audio[^>]*onerror', 
-        r'<video[^>]*onerror',
-        r'<iframe[^>]*onload',
-        r'<svg[^>]*onload',
-        r'<body[^>]*onload',
-        r'<marquee[^>]*on\w+',
-        r'<input[^>]*onfocus',
-        r'<textarea[^>]*onfocus',
-        r'<button[^>]*onmouseover',
-        
-        # Iframe and object injections
-        r'<iframe[^>]*src\s*=\s*[\'"]?javascript:',
-        r'<iframe[^>]*srcdoc',
-        r'<object[^>]*data\s*=\s*[\'"]?javascript:',
-        r'<embed[^>]*src\s*=\s*[\'"]?javascript:',
-        
-        # Style-based XSS
-        r'style\s*=\s*[\'"][^\'\"]*javascript:',
-        r'<style[^>]*onload',
-        
-        # Meta refresh XSS
-        r'<meta[^>]*http-equiv.*refresh.*javascript:',
-        
-        # Form-based XSS
-        r'<form[^>]*action\s*=\s*[\'"]?javascript:',
-        
-        # MathML XSS
-        r'<math[^>]*xmlns.*onload',
-        r'<mstyle[^>]*onload',
-        
-        # SVG-based XSS
-        r'<svg[^>]*><script',
-        r'<animate[^>]*onbegin',
-        
-        # Encoding variants
-        r'%22%3E%3Cscript',  # "><script
-        r'%3C%2Fscript%3E',  # </script>
-        r'&quot;&gt;&lt;script',
-    ]
-    
-    detected_requests = []
-    pattern_matches = {}
-    
-    for event in http_events:
-        http_data = event.get('http', {})
-        url = http_data.get('url', '')
-        
-        matched_patterns = []
-        for i, pattern in enumerate(xss_patterns):
-            if re.search(pattern, url, re.IGNORECASE):
-                matched_patterns.append(i)
-        
-        if matched_patterns:
-            # Calculate confidence based on number and type of matches
-            confidence = min(0.75 + (len(matched_patterns) * 0.05), 0.95)
-            
-            detected_requests.append({
-                'timestamp': event.get('timestamp'),
-                'url': url,
-                'confidence': confidence,
-                'matched_patterns': len(matched_patterns)
-            })
-            
-            # Track pattern usage
-            for pattern_idx in matched_patterns:
-                pattern_matches[pattern_idx] = pattern_matches.get(pattern_idx, 0) + 1
-    
-    detected_attack_ratio = (len(detected_requests) / len(http_events) * 100) if http_events else 0
-    
-    print(f"🔍 OPTIMIZED PATTERN ANALYSIS:")
-    print(f"   Detection Method: Comprehensive pattern matching")
-    print(f"   Total Patterns: {len(xss_patterns)}")
-    print(f"   Active Patterns: {len(pattern_matches)}")
-    print(f"   XSS Attacks Detected: {len(detected_requests)}")
-    print(f"   Detected Attack Ratio: {detected_attack_ratio:.1f}%")
-    print()
-    
-    print(f"🎯 TOP TRIGGERED PATTERNS:")
-    sorted_patterns = sorted(pattern_matches.items(), key=lambda x: x[1], reverse=True)
-    for i, (pattern_idx, count) in enumerate(sorted_patterns[:5]):
-        pattern = xss_patterns[pattern_idx]
-        print(f"   {i+1}. {pattern:<30} ({count} matches)")
-    print()
-    
-    print(f"🎯 DETECTION SAMPLES:")
-    for i, detection in enumerate(detected_requests[:5]):
-        print(f"   {i+1}. {detection['url']} (conf: {detection['confidence']:.2f}, patterns: {detection['matched_patterns']})")
-    
-    if len(detected_requests) > 5:
-        print(f"   ... and {len(detected_requests) - 5} more detections")
-    print()
-    
-    return {
-        'total_requests': len(http_events),
-        'xss_detections': len(detected_requests),
-        'detected_attack_ratio': detected_attack_ratio,
-        'detected_requests': detected_requests,
-        'model_type': 'Optimized Pattern Matching',
-        'active_patterns': len(pattern_matches),
-        'total_patterns': len(xss_patterns)
-    }
-    """Analyze Mode 2: HYBRID Detection (Pattern-based + ML validation)"""
-    
-    print("=" * 60)
-    print("🤖 MODE 2: HYBRID DETECTION ANALYSIS")
-    print("=" * 60)
-    
-    try:
-        with open(eve_file, 'r') as f:
-            events = [json.loads(line) for line in f if line.strip()]
-    except FileNotFoundError:
-        print(f"❌ Error: File {eve_file} not found")
-        return None
-    
-    # Extract HTTP events for analysis
-    http_events = [e for e in events if e.get('event_type') == 'http']
-    
-    print(f"Total HTTP Requests: {len(http_events)}")
-    print()
-    
-    # Hybrid approach: Pattern-based detection + ML validation
-    import sys
-    import os
-    import re
-    sys.path.append('/scripts')
-    
-    # XSS detection patterns (proven effective)
-    xss_patterns = [
-        r'<script',
-        r'javascript:',
-        r'alert\(',
-        r'eval\(',
-        r'document\.write',
-        r'onclick\s*=',
-        r'onload\s*=',
-        r'onerror\s*=',
-        r'<iframe',
-        r'<svg.*onload',
-        r'onmouseover\s*=',
-        r'onfocus\s*=',
-        r'<img.*onerror',
-        r'<audio.*onerror',
-        r'<video.*onerror'
-    ]
-    
-    try:
-        # Try to load ML detector for validation
-        from mode2_ml_detector import MLXSSDetector
-        ml_detector = MLXSSDetector()
-        ml_available = ml_detector.model is not None
-        print(f"🔧 ML Validator: {'Available' if ml_available else 'Pattern-only mode'}")
-    except:
-        ml_detector = None
-        ml_available = False
-        print(f"🔧 ML Validator: Pattern-only mode")
-    
-    print()
-    
-    hybrid_detections = 0
-    detected_requests = []
-    pattern_matches = 0
-    ml_confirmations = 0
-    
-    for event in http_events:
-        http_data = event.get('http', {})
-        url = http_data.get('url', '')
-        
-        # Step 1: Pattern-based detection (primary)
-        pattern_detected = any(re.search(pattern, url, re.IGNORECASE) for pattern in xss_patterns)
-        
-        if pattern_detected:
-            pattern_matches += 1
-            confidence = 0.75  # Base confidence for pattern match
-            
-            # Step 2: ML validation (if available)
-            if ml_available:
-                try:
-                    is_xss_ml, ml_prob = ml_detector.predict_xss(event)
-                    if is_xss_ml:
-                        # ML confirms pattern detection
-                        confidence = min(0.85 + (ml_prob * 0.15), 0.95)
-                        ml_confirmations += 1
-                    else:
-                        # ML disagrees, reduce confidence but still detect
-                        confidence = max(0.65, 0.75 * ml_prob)
-                except:
-                    pass  # Keep pattern-based confidence
-            
-            hybrid_detections += 1
-            detected_requests.append({
-                'timestamp': event.get('timestamp'),
-                'url': url,
-                'confidence': confidence,
-                'detection_method': 'pattern+ml' if ml_available else 'pattern'
-            })
-    
-    detected_attack_ratio = (hybrid_detections / len(http_events) * 100) if http_events else 0
-    
-    print(f"🔍 HYBRID DETECTION ANALYSIS:")
-    print(f"   Detection Method: Pattern-based + ML validation")
-    print(f"   Pattern Matches: {pattern_matches}")
-    if ml_available:
-        print(f"   ML Confirmations: {ml_confirmations}")
-        print(f"   ML Confirmation Rate: {(ml_confirmations/pattern_matches*100):.1f}%" if pattern_matches > 0 else "   ML Confirmation Rate: N/A")
-    print(f"   Final Detections: {hybrid_detections}")
-    print(f"   Detected Attack Ratio: {detected_attack_ratio:.1f}%")
-    print()
-    
-    print(f"🎯 HYBRID DETECTION RESULTS:")
-    for i, detection in enumerate(detected_requests[:5]):  # Show first 5
-        method = detection.get('detection_method', 'pattern')
-        print(f"   {i+1}. {detection['url']} (confidence: {detection['confidence']:.3f}, method: {method})")
-    
-    if len(detected_requests) > 5:
-        print(f"   ... and {len(detected_requests) - 5} more detections")
-    print()
-    
-    return {
-        'total_requests': len(http_events),
-        'xss_detections': hybrid_detections,
-        'detected_attack_ratio': detected_attack_ratio,
-        'detected_requests': detected_requests,
-        'model_type': 'Hybrid (Pattern + ML)',
-        'pattern_matches': pattern_matches,
-        'ml_confirmations': ml_confirmations if ml_available else 0
-    }
+
 
 def compare_modes(mode1_results, mode2_results):
     """Compare Mode 1 (Official Rules) vs Mode 2 (ML) Detection"""

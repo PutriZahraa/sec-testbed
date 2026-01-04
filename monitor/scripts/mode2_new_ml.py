@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-Mode 2 ML Detection Script
+Mode 2 NEW ML Detection Script
 Tests ML effectiveness for XSS detection using HTTP events only
-Uses existing trained detection_model.pkl for actual ML inference
+Uses rf_xss_detector.pkl with higher threshold to reduce false positives
 """
 
 import json
@@ -18,7 +18,7 @@ from urllib.parse import unquote
 class MLXSSDetector:
     def __init__(self):
         # Load the trained ML model
-        self.model_path = "/scripts/models/detection_model.pkl"  # Updated path
+        self.model_path = "/scripts/models/rf_xss_detector.pkl"
         self.model = None
         self.feature_columns = None
         
@@ -47,7 +47,7 @@ class MLXSSDetector:
             if isinstance(model_data, dict) and 'model' in model_data:
                 self.model = model_data['model']
                 self.feature_columns = model_data['feature_names']
-                print(f"✅ ML Model loaded successfully from: {self.model_path}")
+                print(f"✅ NEW ML Model loaded successfully from: {self.model_path}")
                 print(f"   Model type: {type(self.model).__name__}")
                 print(f"   Features: {len(self.feature_columns)}")
                 print(f"   Feature order: {self.feature_columns}")
@@ -58,12 +58,12 @@ class MLXSSDetector:
                     'src_port', 'dest_port', 'http_status', 'http_resp_len', 'http_url_len',
                     'url_contains_script_tag', 'url_contains_onerror', 'http_method_POST'
                 ]
-                print(f"✅ ML Model loaded successfully from: {self.model_path}")
+                print(f"✅ NEW ML Model loaded successfully from: {self.model_path}")
                 print(f"   Model type: {type(self.model).__name__}")
                 print(f"   Features: {len(self.feature_columns)}")
             
         except Exception as e:
-            print(f"❌ Error loading ML model: {e}")
+            print(f"❌ Error loading NEW ML model: {e}")
             print("   Falling back to basic XSS pattern detection")
             self.model = None
     
@@ -135,8 +135,8 @@ class MLXSSDetector:
             else:
                 probability = 1.0 if prediction == 1 else 0.0
             
-            # Use optimized threshold of 0.35 instead of 0.5
-            optimized_threshold = 0.35
+            # Use HIGHER threshold of 0.65 to reduce false positives
+            optimized_threshold = 0.65
             is_attack = probability > optimized_threshold
             
             return is_attack, probability
@@ -192,7 +192,7 @@ class MLXSSDetector:
             
             http_data = event.get('http', {})
             
-            print(f"🚨 ML XSS DETECTED: {event.get('timestamp', 'N/A')}")
+            print(f"🚨 NEW ML XSS DETECTED: {event.get('timestamp', 'N/A')}")
             print(f"   URL: {http_data.get('url', 'N/A')}")
             print(f"   Method: {http_data.get('http_method', 'N/A')}")
             print(f"   Status: {http_data.get('status', 'N/A')}")
@@ -205,7 +205,7 @@ class MLXSSDetector:
     
     def analyze_file(self, filename):
         """Analyze events from file"""
-        print(f"🔍 Analyzing Mode 2 events from: {filename}")
+        print(f"🔍 Analyzing Mode 2 NEW ML events from: {filename}")
         print("=" * 60)
         
         try:
@@ -227,16 +227,18 @@ class MLXSSDetector:
     def print_summary(self):
         """Print detection summary"""
         print("=" * 60)
-        print("📊 MODE 2 ML DETECTION SUMMARY")
+        print("📊 MODE 2 NEW ML DETECTION SUMMARY")
         print("=" * 60)
         print(f"Total HTTP Requests: {self.stats['total_requests']}")
         print(f"XSS Attacks Detected: {self.stats['xss_detected']}")
         print(f"Detection Rate: {(self.stats['xss_detected'] / self.stats['total_requests'] * 100):.1f}%")
         print()
         
-        print("🤖 ML DETECTION ANALYSIS:")
+        print("🤖 NEW ML DETECTION ANALYSIS:")
         print(f"   Model Type: {type(self.model).__name__ if self.model else 'Pattern-based fallback'}")
+        print(f"   Model Path: {self.model_path}")
         print(f"   Features Used: {len(self.feature_columns)}")
+        print(f"   Threshold: 0.65 (Higher threshold to reduce false positives)")
         print()
         
         print("📈 ML Prediction Distribution:")
@@ -263,7 +265,7 @@ class MLXSSDetector:
 
 def main():
     if len(sys.argv) != 2:
-        print("Usage: python3 mode2_ml_detector.py <eve.json>")
+        print("Usage: python3 mode2_new_ml.py <eve.json>")
         sys.exit(1)
     
     filename = sys.argv[1]
